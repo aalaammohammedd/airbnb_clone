@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../store/Slices/authslice";
 import { useNavigate } from "react-router-dom";
-import VerifyEmail from "../components/User/VerifyEmail";
 
 const registerSchema = z
   .object({
@@ -26,7 +25,6 @@ const registerSchema = z
   });
 
 const RegisterStep2 = () => {
-  const [showVerify, setShowVerify] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error } = useSelector((state) => state.auth);
@@ -56,17 +54,13 @@ const RegisterStep2 = () => {
 
     dispatch(registerUser(fullData))
       .unwrap()
-      .then(() => {
-
-        setShowVerify(true);
-
-      })
-      .catch(() => { });
+      .then(() => navigate("/homes", { state: { showVerifyEmail: true } }))
+      .catch(() => {});
   };
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100 px-4">
-      <div className="bg-white w-full max-w-lg p-8 rounded-2xl border border-[#717171] m-10">
+      <div className="bg-white w-full max-w-lg p-8 rounded-2xl m-10">
         <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">
           Finish signing up
         </h2>
@@ -166,6 +160,10 @@ const RegisterStep2 = () => {
             )}
           </div>
 
+          {error && (
+            <p className="text-red-500 text-sm" role="alert">{error}</p>
+          )}
+
           {/* Submit */}
           <button
             type="submit"
@@ -175,16 +173,9 @@ const RegisterStep2 = () => {
               : "bg-[#ff385c] hover:bg-[#e61e4d]"
               }`}
           >
-            {loading ? "Creating account..." : "Agree & Continue"}
+            {loading ? "Loading..." : "Agree & Continue"}
           </button>
         </form>
-        {/* Show VerifyEmail Popup */}
-        {showVerify && (
-          <VerifyEmail
-            isOpen={true}
-            onClose={() => setShowVerify(false)}
-          />
-        )}
       </div>
     </div>
 

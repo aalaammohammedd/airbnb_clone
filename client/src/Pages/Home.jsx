@@ -1,19 +1,25 @@
 import Amenity from "@/components/Listing/Amenity";
 import AmenityExtractor from "@/components/Amenities/test";
 import ListingCarousel from "@/components/Listing/ListingCarousel";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import { GetAllListings } from "@/store/Slices/listingSlice";
 import { fetchRecentlyViewed } from "@/store/Slices/recentlyViewedSlice";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, TriangleAlert } from "lucide-react";
+import VerifyEmail from "@/components/User/VerifyEmail";
 
 const Home = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const { listings, status, error } = useSelector((state) => state.listing);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { listings, status } = useSelector((state) => state.listing);
   const user = useSelector((state) => state.auth.user);
   const recentlyViewed = useSelector((state) => state.recentlyViewed.items);
+  const [showVerificationModal, setShowVerificationModal] = useState(
+    Boolean(location.state?.showVerifyEmail)
+  );
 
   useEffect(() => {
     if (status === "idle") {
@@ -23,17 +29,22 @@ const Home = () => {
 
   // Fetch recently viewed for logged-in users only
   useEffect(() => {
-    console.log("User:", user);
-    console.log("Recently Viewed Items:", recentlyViewed);
-
     if (user) {
-      console.log("Fetching recently viewed...");
       dispatch(fetchRecentlyViewed());
     }
-  }, [user, dispatch, recentlyViewed]);
+  }, [user, dispatch]);
 
   return (
     <div>
+      {showVerificationModal && (
+        <VerifyEmail
+          isOpen
+          onClose={() => {
+            setShowVerificationModal(false);
+            navigate(location.pathname, { replace: true, state: null });
+          }}
+        />
+      )}
       {/* Recently Viewed Section - Only for logged-in users */}
       {user && recentlyViewed.length > 0 && (
         <section className="w-10/12 py-10 relative mx-auto">

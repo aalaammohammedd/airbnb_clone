@@ -1,7 +1,13 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const SALT_ROUNDS = 10;
+const passwordHashCost = process.env.SALT_ROUNDS === undefined
+  ? 10
+  : Number(process.env.SALT_ROUNDS);
+
+if (!Number.isInteger(passwordHashCost) || passwordHashCost < 4 || passwordHashCost > 31) {
+  throw new Error('SALT_ROUNDS must be an integer between 4 and 31');
+}
 
 const userSchema = new mongoose.Schema({
   firstName: {
@@ -35,10 +41,12 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true,
     trim: true,
-    match: [/^(010|011|012|015)[0-9]{8}$/, 'Please enter a valid Egyptian phone number']
+    match: [/^\+[1-9]\d{1,14}$/, 'Please enter a valid international phone number']
   },
 
-  verificationCode: { type: String },
+  verificationCode: { type: String, select: false },
+  verificationCodeAttempts: { type: Number, default: 0, min: 0 },
+  verificationCodeSentAt: { type: Date, select: false },
   isVerified: { type: Boolean, default: false },
 
   dob: {
@@ -46,24 +54,14 @@ const userSchema = new mongoose.Schema({
     match: [/^\d{4}-\d{2}-\d{2}$/, 'Please enter dob in YYYY-MM-DD format']
   },
 
-  passportId: {
-    type: String,
-    trim: true,
-    match: [/^[A-Za-z0-9\-]{5,20}$/, 'Please enter valid passport ID'],
-    sparse: true,
-    unique: true
-  },
-  resetPasswordCode: { type: String },
+  resetPasswordCode: { type: String, select: false },
   resetPasswordExpire: { type: Date },
+  resetPasswordVerified: { type: Boolean, default: false },
 
   role: { type: String, enum: ['guest', 'host', 'admin'], default: 'guest' },
 
   passwordHash: { type: String, required: true },
-  school: { type: String },
-  travelCities: [{ type: String }],
   interests: [{ type: String }],
-  preferredLanguages: [{ type: String }],
-  jobTitle: { type: String, trim: true },
   aboutMe: { type: String, trim: true, maxlength: 1000 },
   location: {
     type: {
@@ -73,12 +71,13 @@ const userSchema = new mongoose.Schema({
     },
     default: {}
   },
-  salt: { type: String },
-
   listings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
   bookings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }],
   favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Listing' }],
-  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }]
+  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
+  recentlyViewed: [{ type: mongoose.Schema.Types.ObjectId, ref: 'RecentlyViewed' }],
+  services: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Service' }],
+  experiences: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Experience' }]
 
 }, {
   timestamps: true
@@ -110,9 +109,7 @@ userSchema.pre('save', async function (next) {
   try {
     if (!this.isModified('passwordHash')) return next();
 
-    const salt = await bcrypt.genSalt(SALT_ROUNDS);
-    this.salt = salt;
-    this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
+    this.passwordHash = await bcrypt.hash(this.passwordHash, passwordHashCost);
 
     next();
   } catch (err) {

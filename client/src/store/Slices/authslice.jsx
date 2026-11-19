@@ -48,7 +48,7 @@ export const verifyEmail = createAsyncThunk(
   "/verifyEmail",
   async ({ email, code }, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/verify-email`, {
+      const res = await fetch(`/api/mail/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -72,7 +72,7 @@ export const resendVerification = createAsyncThunk(
   "/resendVerification",
   async (data, { rejectWithValue }) => {
     try {
-      const res = await fetch(`/api/resend`, {
+      const res = await fetch(`/api/mail/resend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -176,11 +176,7 @@ export const fetchUserProfile = createAsyncThunk(
 //profile edit data
 const EDITABLE_FIELDS = [
   'profilePhoto',
-  'jobTitle',
-  'school',
-  'travelCities',
   'interests',
-  'preferredLanguages',
   'aboutMe',
   'location',
 ];
@@ -389,7 +385,8 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmail.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
+        if (action.payload.user) state.user = action.payload.user;
+        state.isAuthenticated = true;
         state.successMessage = "Email verified successfully!";
       })
       .addCase(verifyEmail.rejected, (state, action) => {
@@ -399,6 +396,7 @@ const authSlice = createSlice({
       // resend verfify email
       .addCase(resendVerification.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(resendVerification.fulfilled, (state) => {
         state.loading = false;

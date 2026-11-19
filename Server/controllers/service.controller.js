@@ -1,5 +1,6 @@
 const { uploadOnCloudinary } = require('../config/cloudinary');
 const Service = require('../models/Service.model');
+const User = require('../models/User.model');
 
 // @desc    Create new service listing
 // @route   POST /api/services
@@ -53,6 +54,10 @@ const createService = async (req, res) => {
       serviceDetails,
       host: req.user._id
     });
+    await User.updateOne(
+      { _id: req.user._id },
+      { $addToSet: { services: service._id } }
+    );
 
     res.status(201).json({
       success: true,
@@ -326,6 +331,10 @@ const deleteService = async (req, res) => {
     }
 
     await service.deleteOne();
+    await User.updateOne(
+      { _id: req.user._id },
+      { $pull: { services: service._id } }
+    );
 
     res.status(200).json({
       success: true,

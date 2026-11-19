@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const userController = require("../controllers/user.controller.js");
-const auth = require('../middleware/userMiddleware.js');
-const role = require('../middleware/authUser.js');
-const User = require('../models/User.model.js');
+const userController = require('../controllers/user.controller');
+const authController = require('../controllers/auth/auth.controller');
+const auth = require('../middleware/userMiddleware');
+const role = require('../middleware/authUser');
+const User = require('../models/User.model');
 
 /**
  * @swagger
@@ -14,9 +15,9 @@ const User = require('../models/User.model.js');
 
 /**
  * @swagger
- * /users/register:
+ * /register:
  *   post:
- *     summary: Register a new user and send verification code to email
+ *     summary: Register an account and send an email verification code
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -24,33 +25,33 @@ const User = require('../models/User.model.js');
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - name
- *               - email
- *               - password
+ *             required: [firstName, lastName, email, dob, password]
  *             properties:
- *               name:
+ *               firstName:
  *                 type: string
- *                 example: Aml Sayed
+ *               lastName:
+ *                 type: string
  *               email:
  *                 type: string
- *                 example: aml@example.com
+ *                 format: email
+ *               dob:
+ *                 type: string
+ *                 format: date
  *               password:
  *                 type: string
- *                 example: password123
  *     responses:
  *       201:
- *         description: User registered successfully, check email for verification code
+ *         description: Account created and verification code sent
  *       400:
- *         description: Bad request / Email already registered
+ *         description: Invalid registration details or duplicate email
  */
-router.post('/register', userController.register);
+router.post('/register', authController.register);
 
 /**
  * @swagger
- * /users/verify-email:
+ * /login:
  *   post:
- *     summary: Verify user's email with the code sent to their email
+ *     summary: Log in a verified user
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -58,166 +59,38 @@ router.post('/register', userController.register);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - code
+ *             required: [email, password]
  *             properties:
  *               email:
  *                 type: string
- *                 example: aml@example.com
- *               code:
- *                 type: string
- *                 example: "a1b2c3"
- *     responses:
- *       200:
- *         description: Email verified successfully
- *       400:
- *         description: Invalid verification code or bad request
- *       404:
- *         description: User not found
- */
-router.post('/verify-email', userController.verifyEmail);
-
-/**
- * @swagger
- * /users/login:
- *   post:
- *     summary: Login a user
- *     tags: [Users]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
+ *                 format: email
  *               password:
  *                 type: string
  *     responses:
  *       200:
- *         description: Login successful, returns JWT token
- *       400:
- *         description: Invalid credentials
- */
-router.post('/login', userController.login);
-
-/**
- * @swagger
- * /users:
- *   get:
- *     summary: Get all users (Admin only)
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of users
+ *         description: Login successful
  *       403:
- *         description: Access denied
+ *         description: Email verification is required
  */
-router.get('/', auth, role(['admin']), userController.getAllUsers);
-router.get('/users', userController.getAllUsers);
-router.get('/allUsers', auth, role(['admin']), userController.getAllUsers);
+router.post('/login', authController.login);
 
 /**
  * @swagger
- * /users/{id}:
- *   put:
- *     summary: Update user by ID
+ * /logout:
+ *   post:
+ *     summary: Clear the authentication cookie
  *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: The user ID
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
  *     responses:
  *       200:
- *         description: User updated successfully
- *       404:
- *         description: User not found
+ *         description: User logged out successfully
  */
-router.put('/:id', auth, userController.updateUser);
-router.put('/users/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-        user.role = req.body.role;
-        user.isVerified = true;
-        await user.save();
-        res.status(200).json({ message: 'User updated successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
-}); // not best practice
+router.post('/logout', authController.logout);
 
 /**
  * @swagger
- * /users/{id}:
- *   delete:
- *     summary: Delete user by ID
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
- *         required: true
- *         description: The user ID
- *     responses:
- *       200:
- *         description: User deleted successfully
- *       404:
- *         description: User not found
- */
-router.delete('/deleteUser/:id', auth, userController.deleteUser);
-/**
- * @swagger
- * /users/become-host:
+ * /reset/send-code:
  *   post:
- *     summary: Change user role from guest to host
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User role updated to host successfully
- *       400:
- *         description: Only guests can become hosts
- *       401:
- *         description: Unauthorized
- */
-router.post('/become-host', auth, userController.becomeHost);
-/**
- * @swagger
- * /users/resend-code:
- *   post:
- *     summary: Resend verification code to user's email
+ *     summary: Send a password reset code
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -225,88 +98,49 @@ router.post('/become-host', auth, userController.becomeHost);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 example: aml@example.com
- *     responses:
- *       200:
- *         description: Verification code resent successfully
- *       400:
- *         description: Bad request / No verification code found
- *       404:
- *         description: User not found
- */
-router.post('/resend-code', userController.resendVerificationCode);
-/**
- * @swagger
- * /auth/reset/send-code:
- *   post:
- *     summary: Send reset password code to user's email
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
+ *             required: [email]
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
  *     responses:
  *       200:
- *         description: Reset code sent successfully
- *       400:
- *         description: User not found or not verified
- *       500:
- *         description: Server error
+ *         description: Reset code sent
  */
-router.post("/reset/send-code", userController.sendResetCode);
+router.post('/reset/send-code', authController.sendResetCode);
 
 /**
  * @swagger
- * /auth/reset/verify-code:
+ * /reset/verify-code:
  *   post:
- *     summary: Verify the reset password code
- *     tags: [Auth]
+ *     summary: Verify a password reset code
+ *     tags: [Users]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - code
+ *             required: [email, code]
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
- *                 example: user@example.com
  *               code:
  *                 type: string
- *                 example: "ABC123"
  *     responses:
  *       200:
- *         description: Code verified successfully
+ *         description: Reset code verified
  *       400:
  *         description: Invalid or expired code
- *       500:
- *         description: Server error
  */
-router.post("/reset/verify-code", userController.verifyResetCode);
+router.post('/reset/verify-code', authController.verifyResetCode);
 
 /**
  * @swagger
- * /users/reset-password:
+ * /reset-password:
  *   post:
- *     summary: Reset user password using a verified code
+ *     summary: Set a new password after code verification
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -314,76 +148,45 @@ router.post("/reset/verify-code", userController.verifyResetCode);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [email, newPassword]
  *             properties:
  *               email:
  *                 type: string
- *                 example: user@example.com
+ *                 format: email
  *               newPassword:
  *                 type: string
- *                 example: newStrongPassword123
  *     responses:
  *       200:
  *         description: Password reset successfully
  *       400:
- *         description: Reset process not started or invalid request
- *       500:
- *         description: Internal server error
+ *         description: Reset code has not been verified or expired
  */
-router.post("/reset-password", userController.resetPassword);
+router.post('/reset-password', authController.resetPassword);
 
-/**
- * @swagger
- * /users/profile:
- *   get:
- *     summary: Get current authenticated user profile
- *     description: |
- *       Retrieves the profile data for the authenticated user based on the ID
- *       available in the request object (req.user._id) after passing through
- *       the authentication middleware. It selects specific fields (FIELDS_TO_RETURN)
- *       and populates the 'reviews' field.
- *     tags: [Users]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User profile successfully retrieved
- */
+router.get('/', auth, role(['admin']), userController.getAllUsers);
+router.get('/users', userController.getAllUsers);
+router.get('/allUsers', auth, role(['admin']), userController.getAllUsers);
 
+router.put('/:id', auth, userController.updateUser);
+router.put('/users/:id', auth, role(['admin']), async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-router.get("/profile", auth, userController.getProfile);
+    user.role = req.body.role;
+    user.isVerified = true;
+    await user.save();
+    return res.status(200).json({ message: 'User updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
+router.delete('/deleteUser/:id', auth, userController.deleteUser);
+router.post('/become-host', auth, userController.becomeHost);
+
+router.get('/profile', auth, userController.getProfile);
 router.patch('/profile', auth, userController.updateProfile);
-
 router.post('/profile/upload', auth, userController.uploadProfilePhoto);
 
-router.post('/logout', auth, userController.logout);
-
-
-// here is profile for host no guest profile
-// router.get('/profile', auth, async (req, res) => {
-//     try {
-//         const user = await User.findById(req.user._id).select('-passwordHash -salt');
-
-//         if (!user) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: 'User not found'
-//             });
-//         }
-
-//         res.status(200).json({
-//             success: true,
-//             data: user
-//         });
-//     } catch (error) {
-//         console.error('Get profile error:', error);
-//         res.status(500).json({
-//             success: false,
-//             message: error.message
-//         });
-//     }
-// });
-
-
 module.exports = router;
-

@@ -1,5 +1,18 @@
 const RecentlyViewed = require("../models/RecentlyViewed.model");
 const Listing = require("../models/Listing.model");
+const User = require("../models/User.model");
+
+const syncUserRecentlyViewed = async (userId) => {
+  const views = await RecentlyViewed.find({ user: userId })
+    .sort({ viewedAt: -1 })
+    .limit(10)
+    .select("_id");
+
+  await User.updateOne(
+    { _id: userId },
+    { $set: { recentlyViewed: views.map((view) => view._id) } }
+  );
+};
 
 // Add a listing to recently viewed
 const addRecentlyViewed = async (req, res) => {
@@ -23,6 +36,7 @@ const addRecentlyViewed = async (req, res) => {
       // Update viewedAt timestamp
       existing.viewedAt = new Date();
       await existing.save();
+      await syncUserRecentlyViewed(userId);
       return res.json({
         message: "Recently viewed updated",
         recentlyViewed: existing,
@@ -46,6 +60,7 @@ const addRecentlyViewed = async (req, res) => {
         _id: { $in: userViews.map((v) => v._id) },
       });
     }
+    await syncUserRecentlyViewed(userId);
 
     return res.status(201).json({
       message: "Added to recently viewed",
@@ -89,6 +104,7 @@ const clearRecentlyViewed = async (req, res) => {
     const userId = req.user._id;
 
     await RecentlyViewed.deleteMany({ user: userId });
+    await User.updateOne({ _id: userId }, { $set: { recentlyViewed: [] } });
 
     res.json({ message: "Recently viewed history cleared" });
   } catch (err) {

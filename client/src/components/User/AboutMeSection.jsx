@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateProfile, fetchUserProfile, uploadProfilePhoto } from '../../store/Slices/authslice';
-import { FaSuitcase, FaGlobeAmericas, FaStar, FaEdit, FaSchool } from 'react-icons/fa';
+import { updateProfile, fetchUserProfile } from '../../store/Slices/authslice';
+import { FaGlobeAmericas, FaStar, FaEdit } from 'react-icons/fa';
 import axios from 'axios';
 
 const transformDataForDispatch = (data) => {
     const finalData = { ...data };
-    ['travelCities', 'interests', 'preferredLanguages'].forEach(key => {
+    ['interests'].forEach(key => {
         if (typeof finalData[key] === 'string') {
             finalData[key] = finalData[key].split(',').map(item => item.trim()).filter(item => item !== '');
         }
@@ -17,9 +17,7 @@ const transformDataForDispatch = (data) => {
 //key convert location to string
 const REVERSE_GEOCODE_API_KEY = 'c6ee548b2760410bb47cf5d2730601ad';
 
-const CITIES_OPTIONS = ['Alexandria', 'Dubai', 'Paris', 'London', 'Tokyo'];
 const INTERESTS_OPTIONS = ['Photography', 'Hiking', 'Reading', 'Cooking', 'Gaming'];
-const LANGUAGES_OPTIONS = ['Arabic', 'English', 'French', 'German', 'Spanish'];
 
 const CheckboxGroup = ({ label, name, options, selectedValues, onChange }) => (
     <div>
@@ -55,10 +53,6 @@ const AboutMeSection = () => {
     const error = useSelector((state) => state.auth.error);
     const updateStatus = useSelector((state) => state.auth.updateStatus);
     const updateError = useSelector((state) => state.auth.error);
-    const photoUploadStatus = useSelector(state => state.auth.photoUploadStatus);
-
-    const fileInputRef = useRef(null);
-
     // State
     const [isEditing, setIsEditing] = useState(false);
     const [editableData, setEditableData] = useState({});
@@ -74,13 +68,9 @@ const AboutMeSection = () => {
         if (profile) {
             // Initialize state data. Checkbox values are converted to arrays for easier manipulation in handleCheckboxChange
             setEditableData({
-                jobTitle: profile.jobTitle || '',
-                school: profile.school || '',
                 aboutMe: profile.aboutMe || '',
                 // Checkbox fields: ensure they are arrays for CheckboxGroup component
-                travelCities: Array.isArray(profile.travelCities) ? profile.travelCities : [],
                 interests: Array.isArray(profile.interests) ? profile.interests : [],
-                preferredLanguages: Array.isArray(profile.preferredLanguages) ? profile.preferredLanguages : [],
                 // Location Fields initialization
                 location: profile.location && profile.location.address ? profile.location.address : '',
                 latitude: profile.location && profile.location.latitude ? profile.location.latitude : null,
@@ -167,19 +157,6 @@ const AboutMeSection = () => {
         }
     };
 
-    const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const action = await dispatch(uploadProfilePhoto(file));
-
-        if (action.meta.requestStatus === 'rejected') {
-            console.error("Photo Upload Failed:", action.payload);
-        }
-
-        e.target.value = null;
-    };
-
     const handleSave = (e) => {
         e.preventDefault();
 
@@ -260,28 +237,6 @@ const AboutMeSection = () => {
                         <p className="text-sm">Role: <span className="text-gray-900">{profile.role}</span></p>
                     </div> */}
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Job Title</label>
-                        <input
-                            type="text"
-                            name="jobTitle"
-                            value={editableData.jobTitle}
-                            onChange={handleChange}
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">School</label>
-                        <input
-                            type="text"
-                            name="school"
-                            value={editableData.school}
-                            onChange={handleChange}
-                            className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                        />
-                    </div>
-
                     {/*  Location  with Geolocation Button */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Location / City Name</label>
@@ -311,30 +266,12 @@ const AboutMeSection = () => {
                         {locationError && <p className="text-xs text-red-500 mt-1">{locationError}</p>}
                     </div>
 
-                    {/* Travel Cities (Checkbox Group) */}
-                    <CheckboxGroup
-                        label="Travel Cities"
-                        name="travelCities"
-                        options={CITIES_OPTIONS}
-                        selectedValues={editableData.travelCities}
-                        onChange={handleCheckboxChange}
-                    />
-
                     {/* Interests (Checkbox Group) */}
                     <CheckboxGroup
                         label="Interests"
                         name="interests"
                         options={INTERESTS_OPTIONS}
                         selectedValues={editableData.interests}
-                        onChange={handleCheckboxChange}
-                    />
-
-                    {/* Preferred Languages (Checkbox Group) */}
-                    <CheckboxGroup
-                        label="Preferred Languages"
-                        name="preferredLanguages"
-                        options={LANGUAGES_OPTIONS}
-                        selectedValues={editableData.preferredLanguages}
                         onChange={handleCheckboxChange}
                     />
 
@@ -352,7 +289,7 @@ const AboutMeSection = () => {
                     <div className="flex space-x-4">
                         <button
                             type="submit"
-                            disabled={updateStatus === 'loading' || photoUploadStatus === 'loading'}
+                            disabled={updateStatus === 'loading'}
                             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50 transition duration-150"
                         >
                             {updateStatus === 'loading' ? 'Saving...' : 'Save Changes'}
@@ -401,37 +338,6 @@ const AboutMeSection = () => {
 
             <div className="space-y-6">
 
-                {/* Job Title */}
-                <div className="flex items-start">
-                    <FaSuitcase className="w-5 h-5 text-gray-500 mr-4 mt-1" />
-                    <div>
-                        <p className="text-sm text-gray-700">My work:</p>
-                        <p className="font-semibold">{profile.jobTitle || 'Not specified'}</p>
-                    </div>
-                </div>
-
-                {/* Travel Cities */}
-                <div className="flex items-start">
-                    <FaGlobeAmericas className="w-5 h-5 text-gray-500 mr-4 mt-1" />
-                    <div>
-                        <p className="text-sm text-gray-700">Travel Cities:</p>
-                        <p className="font-semibold">
-                            {profile.travelCities && profile.travelCities.length > 0
-                                ? profile.travelCities.join(', ')
-                                : 'None specified'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* School */}
-                <div className="flex items-start">
-                    <FaSchool className="w-5 h-5 text-gray-500 mr-4 mt-1" />
-                    <div>
-                        <p className="text-sm text-gray-700">School:</p>
-                        <p className="font-semibold">{profile.school || 'Not specified'}</p>
-                    </div>
-                </div>
-
                 {/* Location */}
                 <div className="flex items-start">
                     <FaGlobeAmericas className="w-5 h-5 text-gray-500 mr-4 mt-1" />
@@ -451,19 +357,6 @@ const AboutMeSection = () => {
                         <p className="font-semibold">
                             {profile.interests && profile.interests.length > 0
                                 ? profile.interests.join(', ')
-                                : 'None specified'}
-                        </p>
-                    </div>
-                </div>
-
-                {/* Preferred Languages */}
-                <div className="flex items-start">
-                    <FaGlobeAmericas className="w-5 h-5 text-gray-500 mr-4 mt-1" />
-                    <div>
-                        <p className="text-sm text-gray-700">Preferred Languages:</p>
-                        <p className="font-semibold">
-                            {profile.preferredLanguages && profile.preferredLanguages.length > 0
-                                ? profile.preferredLanguages.join(', ')
                                 : 'None specified'}
                         </p>
                     </div>

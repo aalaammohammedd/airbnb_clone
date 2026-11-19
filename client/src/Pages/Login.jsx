@@ -69,13 +69,19 @@ export default function Login() {
             )}
           </div>
 
+          {error && (
+            <p className="text-red-500 text-sm" role="alert">
+              {error}
+            </p>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-[#ff385c] hover:bg-[#e61e4d] text-white py-2 rounded-md transition duration-200 disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Loading..." : "Login"}
           </button>
         </form>
 
