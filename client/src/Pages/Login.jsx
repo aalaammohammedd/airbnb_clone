@@ -17,7 +17,14 @@ export default function Login() {
   const onSubmit = (data) => {
     dispatch(loginUser(data)).then((res) => {
       if (res.meta.requestStatus === "fulfilled") {
+        localStorage.removeItem("pendingVerificationEmail");
+        localStorage.removeItem("registerEmail");
         navigate("/homes"); // Redirect after successful login
+      } else if (res.payload?.toLowerCase().includes("verify your email")) {
+        const email = data.email.trim().toLowerCase();
+        localStorage.setItem("pendingVerificationEmail", email);
+        localStorage.removeItem("registerEmail");
+        navigate("/verify-account", { state: { email } });
       }
     });
   };

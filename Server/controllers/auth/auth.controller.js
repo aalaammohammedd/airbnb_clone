@@ -3,7 +3,6 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const User = require('../../models/User.model');
-const { sendVerificationCode } = require('../Email/email.service');
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -23,24 +22,18 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    const verificationCode = crypto.randomBytes(3).toString('hex');
     const user = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       email: normalizedEmail,
       dob,
-      password,
-      verificationCode: await bcrypt.hash(verificationCode, 10),
-      verificationCodeAttempts: 0,
-      verificationCodeSentAt: new Date()
+      password
     });
 
     await user.save();
-    await sendVerificationCode(user, verificationCode);
 
     return res.status(201).json({
-      message: 'User registered successfully. Check your email for the verification code.',
-      resendAfterSeconds: 30
+      message: 'Account created successfully. Send a verification code to your email to continue.'
     });
   } catch (error) {
     return res.status(400).json({ message: error.message });
@@ -75,7 +68,8 @@ const login = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        isVerified: user.isVerified
       }
     });
   } catch (error) {

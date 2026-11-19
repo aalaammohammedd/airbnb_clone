@@ -80,7 +80,12 @@ export const resendVerification = createAsyncThunk(
         body: JSON.stringify(data),
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to resend code");
+      if (!res.ok) {
+        return rejectWithValue({
+          message: result.message || "Failed to resend code",
+          resendAfterSeconds: result.resendAfterSeconds,
+        });
+      }
       return result;
     } catch (err) {
       return rejectWithValue(err.message);
@@ -403,7 +408,7 @@ const authSlice = createSlice({
       })
       .addCase(resendVerification.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || action.payload;
       })
 
 

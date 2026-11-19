@@ -85,7 +85,7 @@ exports.deleteUser = async (req, res) => {
 
 
 const FIELDS_TO_RETURN = [
-  'firstName', 'profilePhoto', 'interests', 'aboutMe', 'role', 'reviews',
+  'firstName', 'lastName', 'email', 'isVerified', 'profilePhoto', 'interests', 'aboutMe', 'role', 'reviews',
   'location', 'listings', 'bookings', 'favorites', 'recentlyViewed', 'services',
   'experiences',
 ].join(' ');

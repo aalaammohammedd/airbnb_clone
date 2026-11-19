@@ -28,7 +28,7 @@ const router = express.Router();
  *       200:
  *         description: Email verified successfully
  *       400:
- *         description: Invalid verification code
+ *         description: Invalid or expired verification code
  *       429:
  *         description: Maximum incorrect attempts reached
  */
@@ -38,11 +38,24 @@ router.post('/verify-email', emailController.verifyEmail);
  * @swagger
  * /mail/resend:
  *   post:
- *     summary: Resend an account verification code
+ *     summary: Send or resend an account verification code
  *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
  *     responses:
  *       200:
- *         description: Verification code resent successfully
+ *         description: Verification code sent successfully
+ *       404:
+ *         description: Account not found
  *       429:
  *         description: Resend cooldown is active
  */

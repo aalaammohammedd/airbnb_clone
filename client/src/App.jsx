@@ -40,6 +40,8 @@ import WishlistPage from "./Pages/Wishlists";
 import CollectionDetail from "./Pages/CollectionDetail";
 import AIRecommendation from "./Pages/AIRecommendation";
 import RecommendedHomes from "./Pages/RecommendedHomes";
+import VerifyAccount from "./Pages/VerifyAccount";
+import VerifiedAccountGuard from "./components/guards/VerifiedAccountGuard";
 import { useEffect } from "react";
 
 function App() {
@@ -60,7 +62,15 @@ function App() {
       element: <Layout />,
       children: [
         { index: true, element: <LandingPage /> },
-        { path: "homes", element: <Home /> },
+        {
+          path: "homes",
+          element: (
+            <VerifiedAccountGuard>
+              <Home />
+            </VerifiedAccountGuard>
+          ),
+        },
+        { path: "verify-account", element: <VerifyAccount /> },
         { path: "search", element: <SearchListing /> },
         { path: "room/:id", element: <ListingDetails /> },
         { path: "reset-password", element: <ResetPassword /> },

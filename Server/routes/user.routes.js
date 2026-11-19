@@ -17,7 +17,7 @@ const User = require('../models/User.model');
  * @swagger
  * /register:
  *   post:
- *     summary: Register an account and send an email verification code
+ *     summary: Create an account before email verification
  *     tags: [Users]
  *     requestBody:
  *       required: true
@@ -41,7 +41,7 @@ const User = require('../models/User.model');
  *                 type: string
  *     responses:
  *       201:
- *         description: Account created and verification code sent
+ *         description: Account created; request a verification code separately
  *       400:
  *         description: Invalid registration details or duplicate email
  */

@@ -5,6 +5,7 @@ const User = require('../../models/User.model');
 const { sendVerificationCode } = require('./email.service');
 
 const RESEND_INTERVAL_MS = 30 * 1000;
+const VERIFICATION_CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFICATION_ATTEMPTS = 3;
 
 const verifyEmail = async (req, res) => {
@@ -22,11 +23,21 @@ const verifyEmail = async (req, res) => {
     if (!user.verificationCode) {
       return res.status(400).json({ message: 'Verification code is unavailable. Request a new code.' });
     }
+    if (
+      !user.verificationCodeSentAt ||
+      Date.now() - user.verificationCodeSentAt.getTime() > VERIFICATION_CODE_TTL_MS
+    ) {
+      user.verificationCode = undefined;
+      user.verificationCodeAttempts = 0;
+      user.verificationCodeSentAt = undefined;
+      await user.save();
+      return res.status(400).json({ message: 'Verification code expired. Request a new code.' });
+    }
     if (user.verificationCodeAttempts >= MAX_VERIFICATION_ATTEMPTS) {
       return res.status(429).json({ message: 'Too many incorrect attempts. Request a new code.' });
     }
 
-    const isValidCode = await bcrypt.compare(code.trim(), user.verificationCode);
+    const isValidCode = await bcrypt.compare(code.trim().toLowerCase(), user.verificationCode);
     if (!isValidCode) {
       user.verificationCodeAttempts += 1;
       if (user.verificationCodeAttempts >= MAX_VERIFICATION_ATTEMPTS) {
@@ -67,7 +78,8 @@ const verifyEmail = async (req, res) => {
         lastName: user.lastName,
         email: user.email,
         role: user.role,
-        profilePhoto: user.profilePhoto
+        profilePhoto: user.profilePhoto,
+        isVerified: user.isVerified
       }
     });
   } catch (error) {
@@ -138,4 +150,9 @@ const resendVerificationCode = async (req, res) => {
 };
 
 
-module.exports = { verifyEmail, resendVerificationCode, MAX_VERIFICATION_ATTEMPTS };
+module.exports = {
+  verifyEmail,
+  resendVerificationCode,
+  MAX_VERIFICATION_ATTEMPTS,
+  VERIFICATION_CODE_TTL_MS
+};

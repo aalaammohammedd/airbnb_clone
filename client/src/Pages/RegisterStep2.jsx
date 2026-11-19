@@ -54,7 +54,12 @@ const RegisterStep2 = () => {
 
     dispatch(registerUser(fullData))
       .unwrap()
-      .then(() => navigate("/homes", { state: { showVerifyEmail: true } }))
+      .then(() => {
+        const email = savedEmail.trim().toLowerCase();
+        localStorage.setItem("pendingVerificationEmail", email);
+        localStorage.removeItem("registerEmail");
+        navigate("/verify-account", { state: { email } });
+      })
       .catch(() => {});
   };
 
