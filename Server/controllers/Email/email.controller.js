@@ -11,7 +11,7 @@ const MAX_VERIFICATION_ATTEMPTS = 3;
 const verifyEmail = async (req, res) => {
   try {
     const { email, code } = req.body;
-    if (typeof email !== 'string' || typeof code !== 'string' || !code.trim()) {
+    if (!email || !code) {
       return res.status(400).json({ message: 'Email and verification code are required' });
     }
 
@@ -92,11 +92,12 @@ const resendVerificationCode = async (req, res) => {
   try {
     const { email } = req.body;
 
-    if (typeof email !== 'string' || !email.trim()) {
+    if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
 
     const user = await User.findOne({
+      
       email: email.trim().toLowerCase()
     }).select('+verificationCode +verificationCodeSentAt');
 

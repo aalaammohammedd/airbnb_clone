@@ -18,7 +18,7 @@ const sendVerificationCode = async (user, verificationCode) => {
   );
 
   await transporter.sendMail({
-    from: process.env.BREVO_Email,
+    from: process.env.EMAIL,
     to: user.email,
     subject: 'Verify your Airbnb account',
     html
