@@ -6,12 +6,11 @@ import { useSelector, useDispatch } from "react-redux";
 import { GetAllListings } from "@/store/Slices/listingSlice";
 import { fetchRecentlyViewed } from "@/store/Slices/recentlyViewedSlice";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, TriangleAlert } from "lucide-react";
 
 const Home = () => {
   const { t } = useTranslation();
   const dispatch = useDispatch();
-  const { listings, status, error } = useSelector((state) => state.listing);
+  const { listings, status } = useSelector((state) => state.listing);
   const user = useSelector((state) => state.auth.user);
   const recentlyViewed = useSelector((state) => state.recentlyViewed.items);
 
@@ -23,14 +22,10 @@ const Home = () => {
 
   // Fetch recently viewed for logged-in users only
   useEffect(() => {
-    console.log("User:", user);
-    console.log("Recently Viewed Items:", recentlyViewed);
-
     if (user) {
-      console.log("Fetching recently viewed...");
       dispatch(fetchRecentlyViewed());
     }
-  }, [user, dispatch, recentlyViewed]);
+  }, [user, dispatch]);
 
   return (
     <div>

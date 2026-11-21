@@ -11,6 +11,7 @@ const http = require("http");
 
 // Routes
 const userRoute = require("./routes/user.routes");
+const mailRoute = require("./routes/mail.routes");
 const listingRoute = require("./routes/listing.routes");
 const reviewRoute = require("./routes/review.routes");
 const bookingRoute = require("./routes/booking.routes");
@@ -79,6 +80,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 // Routes
 app.use("/api", userRoute);
+app.use("/api/mail", mailRoute);
 app.use("/api", listingRoute);
 app.use("/api/amenity", amenityRoute);
 app.use("/api", bookingRoute);

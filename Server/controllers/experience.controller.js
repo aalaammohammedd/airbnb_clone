@@ -1,4 +1,5 @@
 const Experience = require("../models/Experience.model");
+const User = require("../models/User.model");
 const { uploadOnCloudinary } = require("../config/cloudinary");
 
 // @desc    Create new experience listing
@@ -72,6 +73,10 @@ const createExperience = async (req, res) => {
       inclusions: parsedInclusions,
       host: req.user._id,
     });
+    await User.updateOne(
+      { _id: req.user._id },
+      { $addToSet: { experiences: experience._id } }
+    );
 
     res.status(201).json({
       success: true,
@@ -475,6 +480,10 @@ const deleteExperience = async (req, res) => {
     }
 
     await experience.deleteOne();
+    await User.updateOne(
+      { _id: req.user._id },
+      { $pull: { experiences: experience._id } }
+    );
 
     res.status(200).json({
       success: true,

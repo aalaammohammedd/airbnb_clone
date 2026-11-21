@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router";
 import "./App.css";
 import Layout from "./layout/Layout";
 import ListingDetails from "./Pages/ListingDetails";
@@ -9,7 +9,6 @@ import NotFound from "./Pages/NotFound";
 import Login from "./Pages/Login";
 import ForgetPassword from "./Pages/ForgetPassword";
 import RegisterStep1 from "./Pages/RegisterStep1";
-import RegisterStep2 from "./Pages/RegisterStep2";
 import Help from "./Pages/Help";
 import Host from "./Pages/Host";
 import ExperiencesPage from "./Pages/ExperiencePage";
@@ -40,27 +39,22 @@ import WishlistPage from "./Pages/Wishlists";
 import CollectionDetail from "./Pages/CollectionDetail";
 import AIRecommendation from "./Pages/AIRecommendation";
 import RecommendedHomes from "./Pages/RecommendedHomes";
-import { useEffect } from "react";
+import VerifyAccount from "./Pages/VerifyAccount";
 
 function App() {
-  useEffect(() => {
-    const script = document.createElement('script')
-    script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-    document.body.appendChild(script)
-    window.googleTranslateElementInit = () => {
-      new google.translate.TranslateElement({
-        pageLanguage: "en",
-        includedLanguages: 'en,ar,es'
-      }, 'google_translate_element')
-    }
-  }, []);
   const routes = createBrowserRouter([
     {
       path: "/",
       element: <Layout />,
       children: [
         { index: true, element: <LandingPage /> },
-        { path: "homes", element: <Home /> },
+        {
+          path: "homes",
+          element: (
+              <Home />
+          ),
+        },
+        { path: "verify-account", element: <VerifyAccount /> },
         { path: "search", element: <SearchListing /> },
         { path: "room/:id", element: <ListingDetails /> },
         { path: "reset-password", element: <ResetPassword /> },
@@ -92,7 +86,7 @@ function App() {
           path: "register",
           element: (
             <AuthGuard requireAuth={false} redirectTo="/homes">
-              <RegisterStep2 />
+              <Navigate to="/signup" replace />
             </AuthGuard>
           ),
         },
@@ -244,7 +238,6 @@ function App() {
   return (
     <>
       <Provider store={store}>
-        <div id="google_translate_element" style={{ display: "none" }}></div>
         <RouterProvider router={routes} />
       </Provider>
     </>

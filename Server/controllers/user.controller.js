@@ -1,185 +1,5 @@
 const User = require("../models/User.model.js");
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
-const jwt = require("jsonwebtoken");
 const { uploadOnCloudinary } = require('../config/cloudinary.js');
-const JWT_SECRET = process.env.JWT_SECRET;
-
-exports.register = async (req, res) => {
-  try {
-    const { firstName, lastName, email, dob, password } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
-
-    const verificationCode = crypto.randomBytes(3).toString('hex');
-
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      dob,
-      password: password,
-      verificationCode
-    });
-
-    await user.save();
-
-    // ================================
-    //   Brevo SMTP SETUP
-    // ================================
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      auth: {
-        user: process.env.BREVO_SMTP_USER,
-        pass: process.env.BREVO_SMTP_KEY
-      }
-    });
-
-    const mailOptions = {
-      from: process.env.BREVO_Email,
-      to: email,
-      subject: "Verify your account",
-      text: `Hello ${firstName},
-
-Welcome to our platform!
-
-Your verification code is: ${verificationCode}
-
-If you didn't create an account with us, you can ignore this message.
-
-Best regards,
-Airbnb Team `
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.status(201).json({
-      message: 'User registered successfully, check your email for verification code'
-    });
-
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-exports.verifyEmail = async (req, res) => {
-  try {
-    const { email, code } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user) return res.status(401).json({ message: 'User not found' });
-    if (user.verificationCode !== code)
-      return res.status(400).json({ message: 'Invalid verification code' });
-
-    user.isVerified = true;
-    user.verificationCode = undefined;
-    await user.save();
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    res.cookie("token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-
-    res.json({
-      message: 'Email verified successfully',
-      token
-    });
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-exports.resendVerificationCode = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'User is not found' });
-    }
-
-    if (!user.verificationCode) {
-      return res.status(400).json({ message: 'No verification code found' });
-    }
-
-    // ================================
-    //   SAME Brevo SMTP SETUP
-    // ================================
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      auth: {
-        user: process.env.BREVO_SMTP_USER,
-        pass: process.env.BREVO_SMTP_KEY
-      }
-    });
-
-    const mailOptions = {
-      from: process.env.BREVO_Email,
-      to: email,
-      subject: "Verify your account",
-      text: `Hello ${user.firstName},
-
-Welcome back!
-
-Your verification code is: ${user.verificationCode}
-
-If you didn't request this, you can ignore this email.
-
-Best regards,
-Airbnb Team `
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.json({
-      message: "Verification code resent successfully"
-    });
-
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-
-
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
-
-    const valid = await user.comparePassword(password);
-    if (!valid) return res.status(400).json({ message: "Invalid password" });
-
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    res.cookie("token", token, {
-      httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
-
-    res.json({ token });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-// add logout controller for user
-exports.logout = async (req, res) => {
-  res.clearCookie("token");
-  res.status(200).json({ message: "User logged out successfully!" });
-};
 
 exports.becomeHost = async (req, res) => {
   try {
@@ -201,116 +21,6 @@ exports.becomeHost = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-//code for forget password
-exports.sendResetCode = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
-
-    if (!user.isVerified)
-      return res.status(400).json({ message: "User is not verified" });
-
-    const resetCode = crypto.randomBytes(3).toString("hex").toUpperCase();
-    const expireTime = Date.now() + 30 * 60 * 1000;
-
-    user.resetPasswordCode = resetCode;
-    user.resetPasswordExpire = expireTime;
-    await user.save();
-
-    // ============================
-    // Brevo email
-    // ============================
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      auth: {
-        user: process.env.BREVO_SMTP_USER,
-        pass: process.env.BREVO_SMTP_KEY
-      }
-    });
-
-    const mailOptions = {
-      from: process.env.BREVO_Email,
-      to: email,
-      subject: "Password Reset Code",
-      text: `Hello ${user.firstName},
-
-Your password reset code is: ${resetCode}
-
-This code is valid for 10 minutes.
-
-If you didn’t request a password reset, ignore this email.
-
-Best regards,
-Airbnb Team`
-    };
-
-    await transporter.sendMail(mailOptions);
-
-    res.json({ message: "Reset code sent to your email" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-exports.verifyResetCode = async (req, res) => {
-  try {
-    const { email, code } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "User not found" });
-
-    if (
-      user.resetPasswordCode !== code ||
-      !user.resetPasswordExpire ||
-      user.resetPasswordExpire < Date.now()
-    ) {
-      return res.status(400).json({ message: "Invalid or expired code" });
-    }
-
-    res.json({ message: "Code verified, proceed to reset password" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-
-exports.resetPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "User not found" });
-
-    if (!user.resetPasswordCode || !user.resetPasswordExpire) {
-      return res.status(400).json({ message: "Reset process not started" });
-    }
-
-    if (user.resetPasswordExpire < Date.now()) {
-      return res.status(400).json({ message: "Reset code expired" });
-    }
-
-    user.password = newPassword;
-
-    user.resetPasswordCode = undefined;
-    user.resetPasswordExpire = undefined;
-
-    await user.save();
-
-    res.json({ message: "Password reset successfully" });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-
-
 // (admin فقط)
 exports.getAllUsers = async (req, res) => {
   try {
@@ -375,8 +85,9 @@ exports.deleteUser = async (req, res) => {
 
 
 const FIELDS_TO_RETURN = [
-  'firstName', 'profilePhoto', 'jobTitle', 'school', 'travelCities', 'interests',
-  'preferredLanguages', 'aboutMe', 'role', 'reviews', 'location',
+  'firstName', 'lastName', 'email', 'isVerified', 'profilePhoto', 'interests', 'aboutMe', 'role', 'reviews',
+  'location', 'listings', 'bookings', 'favorites', 'recentlyViewed', 'services',
+  'experiences',
 ].join(' ');
 
 exports.getProfile = async (req, res) => {
@@ -384,7 +95,13 @@ exports.getProfile = async (req, res) => {
     const userId = req.user._id;
     const userProfile = await User.findById(userId)
       .select(FIELDS_TO_RETURN)
-      .populate('reviews', 'rating comment author');
+      .populate('reviews', 'rating comment author')
+      .populate('services')
+      .populate('experiences')
+      .populate({
+        path: 'recentlyViewed',
+        populate: { path: 'listing', select: 'title address' },
+      });
 
     if (!userProfile) {
       return res.status(404).json({ message: "Profile data not found" });
@@ -400,8 +117,7 @@ exports.getProfile = async (req, res) => {
 
 
 const EDITABLE_FIELDS = [
-  'jobTitle', 'school', 'travelCities', 'interests',
-  'preferredLanguages', 'aboutMe', 'location',
+  'interests', 'aboutMe', 'location',
 ];
 
 exports.updateProfile = async (req, res) => {
