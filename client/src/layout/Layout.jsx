@@ -17,8 +17,17 @@ export default function Layout() {
   const closeModal = () => setShowGlobalModal(false);
 
   const isListingDetailsPage = location.pathname.startsWith("/room/");
+  const isStandaloneAuthPage = [
+    "/login",
+    "/signup",
+    "/register",
+    "/verify-account",
+    "/forget-password",
+  ].includes(location.pathname);
   const hideHeaderFooter =
-    location.pathname === "/not-found" || location.pathname === "/";
+    location.pathname === "/not-found" ||
+    location.pathname === "/" ||
+    isStandaloneAuthPage;
 
   // Fetch current user on app load
   useEffect(() => {

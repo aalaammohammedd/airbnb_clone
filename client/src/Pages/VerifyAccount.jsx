@@ -7,6 +7,7 @@ import {
   resendVerification,
   verifyEmail,
 } from "../store/Slices/authslice";
+import AuthShell from "../components/Auth/AuthShell";
 
 const RESEND_DELAY_SECONDS = 30;
 
@@ -88,27 +89,18 @@ export default function VerifyAccount() {
   };
 
   return (
-    <main className="flex min-h-[70vh] items-center justify-center bg-gray-100 px-4 py-10">
-      <section
-        className="w-full max-w-md rounded-2xl border border-[#717171] bg-white p-8"
-        aria-labelledby="verify-account-title"
-      >
-        <h1
-          id="verify-account-title"
-          className="mb-3 text-center text-2xl font-semibold"
-        >
-          Verify your account
-        </h1>
-        <p className="mb-6 text-center text-sm text-gray-600">
-          We&apos;ll send a six-character verification code to {email}.
-        </p>
+    <AuthShell
+      eyebrow="ONE LAST STEP"
+      title="Verify your account"
+      subtitle={`We’ll send a six-character code to ${email}`}
+    >
 
         {!codeSent ? (
           <button
             type="button"
             onClick={handleSendCode}
             disabled={activeAction !== null}
-            className="w-full rounded-md bg-[#ff385c] py-2 text-white transition duration-200 hover:bg-[#e61e4d] disabled:opacity-50"
+            className="h-12 w-full rounded-lg bg-[#ff385c] text-sm font-semibold text-white transition hover:bg-[#e61e4d] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {activeAction === "send" ? "Sending code..." : "Send code"}
           </button>
@@ -135,7 +127,7 @@ export default function VerifyAccount() {
                       message: "Enter the six-character code from your email",
                     },
                   })}
-                  className="w-full rounded-md border p-2 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
+                  className="h-12 w-full rounded-lg border border-[#b0b0b0] px-3 text-center text-lg uppercase tracking-[0.35em] outline-none focus:border-[#222] focus:ring-1 focus:ring-[#222] disabled:opacity-50"
                   placeholder="ABC123"
                 />
                 {errors.verificationCode && (
@@ -148,7 +140,7 @@ export default function VerifyAccount() {
               <button
                 type="submit"
                 disabled={activeAction !== null}
-                className="w-full rounded-md bg-[#ff385c] py-2 text-white transition duration-200 hover:bg-[#e61e4d] disabled:opacity-50"
+                className="h-12 w-full rounded-lg bg-[#ff385c] text-sm font-semibold text-white transition hover:bg-[#e61e4d] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {activeAction === "verify" ? "Verifying..." : "Verify account"}
               </button>
@@ -183,7 +175,6 @@ export default function VerifyAccount() {
             {actionError || successMessage}
           </p>
         )}
-      </section>
-    </main>
+    </AuthShell>
   );
 }

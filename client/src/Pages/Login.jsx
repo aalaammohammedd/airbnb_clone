@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../store/Slices/authslice";
 import { useNavigate, Link } from "react-router-dom";
+import AuthShell from "../components/Auth/AuthShell";
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -30,14 +31,16 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-2xl border border-[#717171] w-full max-w-md">
-        <h2 className="text-2xl font-semibold text-center mb-6">Welcome</h2>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Email */}
-          <div>
+    <AuthShell
+      eyebrow="WELCOME BACK"
+      title="Welcome back"
+      subtitle="Log in to continue to Airbnb."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-1.5">
+            <label htmlFor="login-email" className="block text-sm font-medium text-[#222]">Email</label>
             <input
+              id="login-email"
               type="email"
               {...register("email", {
                 required: "Email is required",
@@ -46,18 +49,19 @@ export default function Login() {
                   message: "Please enter a valid email",
                 },
               })}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Email"
+              className="h-12 w-full rounded-lg border border-[#b0b0b0] px-3 text-sm text-[#222] outline-none transition placeholder:text-[#717171] focus:border-[#222] focus:ring-1 focus:ring-[#222]"
+              placeholder="you@example.com"
             />
 
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+              <p className="text-sm text-red-600" role="alert">{errors.email.message}</p>
             )}
           </div>
 
-          {/* Password */}
-          <div>
+          <div className="space-y-1.5">
+            <label htmlFor="login-password" className="block text-sm font-medium text-[#222]">Password</label>
             <input
+              id="login-password"
               type="password"
               {...register("password", {
                 required: "Password is required",
@@ -66,18 +70,18 @@ export default function Login() {
                   message: "Password must be at least 6 characters long",
                 },
               })}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Password"
+              className="h-12 w-full rounded-lg border border-[#b0b0b0] px-3 text-sm text-[#222] outline-none transition placeholder:text-[#717171] focus:border-[#222] focus:ring-1 focus:ring-[#222]"
+              placeholder="Enter your password"
             />
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="text-sm text-red-600" role="alert">
                 {errors.password.message}
               </p>
             )}
           </div>
 
           {error && (
-            <p className="text-red-500 text-sm" role="alert">
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
               {error}
             </p>
           )}
@@ -86,27 +90,22 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#ff385c] hover:bg-[#e61e4d] text-white py-2 rounded-md transition duration-200 disabled:opacity-50"
+            className="h-12 w-full rounded-lg bg-[#ff385c] text-sm font-semibold text-white transition hover:bg-[#e61e4d] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "Loading..." : "Login"}
           </button>
-        </form>
-
-        {/* Links */}
-        <div className="text-sm text-center mt-4 space-y-1">
-          <p>
-            Not You?{" "}
-            <Link to="/signup" className="text-black text-xs underline">
-              Use another account
-            </Link>
-          </p>
-          <p>
-            <Link to="/forget-password" className="text-black text-xs underline">
-              Forgot Password?
-            </Link>
-          </p>
-        </div>
+      </form>
+      <div className="mt-5 flex flex-col items-center gap-2 text-sm">
+        <Link to="/forget-password" className="font-medium text-[#222] underline underline-offset-2">
+          Forgot password?
+        </Link>
+        <p className="text-[#717171]">
+          Don&apos;t have an account?{" "}
+          <Link to="/signup" className="font-semibold text-[#222] underline underline-offset-2">
+            Sign up
+          </Link>
+        </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }
