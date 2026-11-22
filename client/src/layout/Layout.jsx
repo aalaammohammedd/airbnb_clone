@@ -4,7 +4,7 @@ import Footer from "@/components/Footer/Footer";
 import { Outlet, useLocation } from "react-router";
 import GlobalModal from "@/components/GlobalModal/GlobalModal";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchCurrentUser } from "@/store/Slices/authslice";
+import { fetchUserProfile } from "@/store/Slices/authslice";
 
 export default function Layout() {
   const location = useLocation();
@@ -31,7 +31,7 @@ export default function Layout() {
 
   // Fetch current user on app load
   useEffect(() => {
-    dispatch(fetchCurrentUser());
+    dispatch(fetchUserProfile());
   }, [dispatch]);
 
   // update HTML direction whenever language changes

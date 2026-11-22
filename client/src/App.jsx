@@ -8,7 +8,7 @@ import { Provider } from "react-redux";
 import NotFound from "./Pages/NotFound";
 import Login from "./Pages/Login";
 import ForgetPassword from "./Pages/ForgetPassword";
-import RegisterStep1 from "./Pages/RegisterStep1";
+import RegisterPage from "./Pages/RegisterPage";
 import Help from "./Pages/Help";
 import Host from "./Pages/Host";
 import ExperiencesPage from "./Pages/ExperiencePage";
@@ -78,7 +78,7 @@ function App() {
           path: "signup",
           element: (
             <AuthGuard requireAuth={false} redirectTo="/homes">
-              <RegisterStep1 />
+              <RegisterPage />
             </AuthGuard>
           ),
         },

@@ -1,15 +1,17 @@
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
-import { resetPassword } from "../store/Slices/authslice";
+import { clearResetEmail } from "../store/Slices/authslice";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function ResetPassword() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { resetEmail, loading, error, successMessage } = useSelector(
-    (state) => state.auth
-  );
+  const { resetEmail } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const {
     register,
@@ -19,15 +21,30 @@ export default function ResetPassword() {
   } = useForm();
 
   const onSubmit = async (data) => {
-    const res = await dispatch(
-      resetPassword({
-        email: resetEmail,
-        newPassword: data.newPassword,
-      })
-    );
-
-    if (res.meta.requestStatus === "fulfilled") {
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const response = await fetch("/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: resetEmail,
+          newPassword: data.newPassword,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to reset password");
+      }
+      setSuccessMessage(result.message || "Password reset successfully.");
+      dispatch(clearResetEmail());
       navigate("/login");
+    } catch (requestError) {
+      setError(requestError.message || "Failed to reset password");
+    } finally {
+      setLoading(false);
     }
   };
 

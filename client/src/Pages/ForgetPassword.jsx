@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
-import { sendResetCode } from "../store/Slices/authslice";
+import { useDispatch } from "react-redux";
+import { setResetEmail } from "../store/Slices/authslice";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import VerifyCodePopup from "../components/User/VerifyCodePopup";
@@ -8,7 +8,9 @@ import AuthShell from "../components/Auth/AuthShell";
 
 export default function ForgetPassword() {
   const dispatch = useDispatch();
-  const { loading, error, successMessage } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [openVerifyPopup, setOpenVerifyPopup] = useState(false);
 
   const {
@@ -17,11 +19,29 @@ export default function ForgetPassword() {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = async (data) => {
-    const res = await dispatch(sendResetCode({ email: data.email }));
-
-    if (res.meta.requestStatus === "fulfilled") {
+  const onSubmit = async ({ email }) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const response = await fetch("/api/reset/send-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to send reset code");
+      }
+      dispatch(setResetEmail(normalizedEmail));
+      setSuccessMessage(result.message || "Reset code sent to your email.");
       setOpenVerifyPopup(true);
+    } catch (requestError) {
+      setError(requestError.message || "Failed to send reset code");
+    } finally {
+      setLoading(false);
     }
   };
 

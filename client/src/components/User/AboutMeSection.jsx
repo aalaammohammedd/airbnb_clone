@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateProfile, fetchUserProfile } from '../../store/Slices/authslice';
+import { fetchUserProfile, setProfile } from '../../store/Slices/authslice';
 import { FaGlobeAmericas, FaStar, FaEdit } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -51,18 +51,18 @@ const AboutMeSection = () => {
     const profile = useSelector((state) => state.auth.user);
     const loading = useSelector((state) => state.auth.loading);
     const error = useSelector((state) => state.auth.error);
-    const updateStatus = useSelector((state) => state.auth.updateStatus);
-    const updateError = useSelector((state) => state.auth.error);
     // State
     const [isEditing, setIsEditing] = useState(false);
     const [editableData, setEditableData] = useState({});
     const [locationError, setLocationError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [updateError, setUpdateError] = useState('');
 
     useEffect(() => {
-        if (!profile && !loading) {
+        if (!profile && !loading && !error) {
             dispatch(fetchUserProfile());
         }
-    }, [dispatch, profile, loading]);
+    }, [dispatch, profile, loading, error]);
 
     useEffect(() => {
         if (profile) {
@@ -157,7 +157,7 @@ const AboutMeSection = () => {
         }
     };
 
-    const handleSave = (e) => {
+    const handleSave = async (e) => {
         e.preventDefault();
 
         // Prepare location data object to match backend schema
@@ -181,12 +181,26 @@ const AboutMeSection = () => {
         // Transform the checkbox array fields into comma-separated strings for dispatch
         dataToSave = transformDataForDispatch(dataToSave);
 
-
-        dispatch(updateProfile(dataToSave)).then((action) => {
-            if (action.meta.requestStatus === 'fulfilled') {
-                setIsEditing(false);
+        setIsSaving(true);
+        setUpdateError('');
+        try {
+            const response = await fetch('/api/profile', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify(dataToSave),
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to update profile.');
             }
-        });
+            dispatch(setProfile(result));
+            setIsEditing(false);
+        } catch (requestError) {
+            setUpdateError(requestError.message || 'Failed to update profile.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     if (loading) return <div className="text-center p-8 text-blue-600 font-semibold">Loading profile data...</div>;
@@ -201,43 +215,10 @@ const AboutMeSection = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-3xl font-bold text-gray-800">Edit Profile</h1>
                 </div>
-                {updateStatus === 'failed' && <p className="text-red-500 mb-4 font-medium">{updateError}</p>}
+                {updateError && <p className="text-red-500 mb-4 font-medium" role="alert">{updateError}</p>}
 
                 <form onSubmit={handleSave} className="space-y-6">
 
-                    {/* <div className="flex items-center space-x-4">
-                        <img 
-                            src={profile.profilePhoto || '/default-avatar.png'} 
-                            alt="Profile Avatar" 
-                            className="w-16 h-16 rounded-full object-cover border border-gray-200" 
-                        />
-                        
-                        <input
-                            type="file"
-                            ref={fileInputRef} 
-                            onChange={handleFileChange}
-                            accept="image/jpeg, image/png"
-                            className="hidden" 
-                        />
-                        
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current.click()} 
-                            disabled={photoUploadStatus === 'loading'}
-                            className="px-4 py-2 text-sm font-semibold border rounded-lg hover:bg-gray-50 disabled:opacity-50 transition duration-150"
-                        >
-                            {photoUploadStatus === 'loading' ? 'Uploading...' : 'Change Photo'}
-                        </button>
-                        {photoUploadStatus === 'failed' && <p className="text-red-500 text-sm mt-1">Image upload failed.</p>}
-                    </div> */}
-
-
-                    {/* <div className="border p-3 rounded-lg bg-gray-50 text-gray-600">
-                        <p className="font-medium">First Name: <span className="text-gray-900">{profile.firstName}</span></p>
-                        <p className="text-sm">Role: <span className="text-gray-900">{profile.role}</span></p>
-                    </div> */}
-
-                    {/*  Location  with Geolocation Button */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Location / City Name</label>
                         <div className="flex space-x-2">
@@ -289,10 +270,10 @@ const AboutMeSection = () => {
                     <div className="flex space-x-4">
                         <button
                             type="submit"
-                            disabled={updateStatus === 'loading'}
+                            disabled={isSaving}
                             className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50 transition duration-150"
                         >
-                            {updateStatus === 'loading' ? 'Saving...' : 'Save Changes'}
+                            {isSaving ? 'Saving...' : 'Save Changes'}
                         </button>
                         <button
                             type="button"
@@ -366,14 +347,6 @@ const AboutMeSection = () => {
                     <h4 className="text-lg font-semibold mb-2">About Me</h4>
                     <p className="text-gray-600 whitespace-pre-line">{profile.aboutMe || 'The user has not added information about themselves yet.'}</p>
                 </div>
-
-                {/* Reviews */}
-                {/* <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center text-gray-700">
-                        <FaStar className="w-5 h-5 mr-3" />
-                        <span className="font-medium">Reviews I've written ({profile.reviews ? profile.reviews.length : 0})</span>
-                    </div>
-                </div> */}
             </div>
         </div>
     );

@@ -1,9 +1,9 @@
 import { MenuIcon } from 'lucide-react';
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';   
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from "@/components/ui/button";
-import { logoutUser } from '@/store/slices/authSlice';
+import { logout } from '@/store/Slices/authslice';
 
 import {
     DropdownMenu,
@@ -18,17 +18,32 @@ import {
 export default function MenuList() {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [logoutError, setLogoutError] = useState('');
 
     const isLoggedIn = useSelector(
         (state) => state.auth.isAuthenticated
     );
 
     const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        setLogoutError('');
         try {
-            await dispatch(logoutUser()).unwrap();
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Logout failed');
+            }
+            dispatch(logout());
             navigate('/');
         } catch (error) {
-            console.error('Logout failed:', error);
+            setLogoutError(error.message || 'Logout failed');
+        } finally {
+            setIsLoggingOut(false);
         }
     };
 
@@ -78,10 +93,18 @@ export default function MenuList() {
 
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem onClick={handleLogout}>
-                            Log out
-                            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                        <DropdownMenuItem onSelect={(event) => {
+                            event.preventDefault();
+                            handleLogout();
+                        }} disabled={isLoggingOut}>
+                            {isLoggingOut ? 'Logging out...' : 'Log out'}
+                            {!isLoggingOut && <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>}
                         </DropdownMenuItem>
+                        {logoutError && (
+                            <p className="px-2 py-1 text-sm text-red-600" role="alert">
+                                {logoutError}
+                            </p>
+                        )}
                     </>
                 )}
 

@@ -10,8 +10,8 @@ export default function AuthShell({
   maxWidth = "max-w-[490px]",
 }) {
   return (
-    <main className="min-h-screen bg-white p-3 sm:p-4 lg:grid lg:grid-cols-[minmax(0,0.94fr)_minmax(0,1.06fr)] lg:gap-8">
-      <aside className="relative h-[32vh] min-h-64 overflow-hidden rounded-3xl lg:h-[calc(100vh-2rem)] lg:min-h-[640px] lg:rounded-[28px]">
+    <main className="min-h-screen bg-white p-3 sm:p-4 lg:grid lg:grid-cols-[45vw_minmax(0,1fr)] lg:gap-8">
+      <aside className="relative hidden overflow-hidden rounded-[28px] lg:fixed lg:left-3 lg:top-3 lg:bottom-3 lg:block lg:w-[45vw]">
         <img
           src={authImage}
           alt="Mediterranean seaside villa"
@@ -40,7 +40,7 @@ export default function AuthShell({
         </div>
       </aside>
 
-      <section className="flex min-h-[calc(68vh-1rem)] items-center justify-center px-2 py-8 sm:px-8 lg:min-h-screen lg:px-10 lg:py-12">
+      <section className="flex min-h-screen items-center justify-center px-2 py-8 sm:px-8 lg:col-start-2 lg:px-10 lg:py-12">
         <div className={`w-full ${maxWidth}`}>
           <header className="mb-7">
             <p className="mb-3 text-xs font-bold tracking-[0.12em] text-[#ff385c]">
