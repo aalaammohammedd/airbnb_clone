@@ -1,6 +1,6 @@
 import { MenuIcon } from 'lucide-react';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';   
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from "@/components/ui/button";
 import { logout } from '@/store/Slices/authslice';
@@ -16,8 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function MenuList() {
-    const dispatch = useDispatch();
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [logoutError, setLogoutError] = useState('');
 
@@ -58,60 +58,66 @@ export default function MenuList() {
             <DropdownMenuContent className="w-56" align="start">
                 <DropdownMenuGroup>
                     {isLoggedIn ? (
-                        <Link to="/profile">
-                            <DropdownMenuItem>
-                                Profile
-                                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-                            </DropdownMenuItem>
+                        <>
+                            <Link to="/profile">
+                                <DropdownMenuItem>
+                                    Profile
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                            </Link>
+                            <DropdownMenuGroup>
+                                <Link to="/messages">
+                                    <DropdownMenuItem>Messages</DropdownMenuItem>
+                                </Link>
+                                <DropdownMenuSeparator />
+                                <Link to="/wishlists">
+                                    <DropdownMenuItem>Wishlist</DropdownMenuItem>
+                                </Link>
+                            </DropdownMenuGroup>
+
                             <DropdownMenuSeparator />
-                        </Link>
-                    ) : (
-                        <Link to="/login">
-                            <DropdownMenuItem>
-                                Login
-                                <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+
+                            <DropdownMenuItem onSelect={(event) => {
+                                event.preventDefault();
+                                handleLogout();
+                            }} disabled={isLoggingOut}>
+                                {isLoggingOut ? 'Logging out...' : 'Log out'}
                             </DropdownMenuItem>
-                        </Link>
+                            {logoutError && (
+                                <p className="px-2 py-1 text-sm text-red-600" role="alert">
+                                    {logoutError}
+                                </p>
+                            )}
+                        </>
+
+                    ) : (
+                        <>
+                            <Link to="/login">
+                                <DropdownMenuItem>
+                                    Login
+                                </DropdownMenuItem>
+                            </Link>
+                            <DropdownMenuSeparator />
+
+                            <Link to="/signup">
+                                <DropdownMenuItem>Signup</DropdownMenuItem>
+                            </Link>
+                        </>
                     )}
                 </DropdownMenuGroup>
 
-                {isLoggedIn && (
-                    <>
-                        <DropdownMenuGroup>
-                            <Link to="/messages">
-                                <DropdownMenuItem>Messages</DropdownMenuItem>
-                            </Link>
-                            <DropdownMenuSeparator />
-                            <Link to="/wishlists">
-                                <DropdownMenuItem>Wishlist</DropdownMenuItem>
-                            </Link>
-                            <DropdownMenuSeparator />
-                            <Link to="/ai-recommendation">
-                                <DropdownMenuItem>AI Recommendation</DropdownMenuItem>
-                            </Link>
-                        </DropdownMenuGroup>
 
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuItem onSelect={(event) => {
-                            event.preventDefault();
-                            handleLogout();
-                        }} disabled={isLoggingOut}>
-                            {isLoggingOut ? 'Logging out...' : 'Log out'}
-                            {!isLoggingOut && <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>}
-                        </DropdownMenuItem>
-                        {logoutError && (
-                            <p className="px-2 py-1 text-sm text-red-600" role="alert">
-                                {logoutError}
-                            </p>
-                        )}
-                    </>
-                )}
 
                 <DropdownMenuSeparator />
 
                 <Link to="/help">
                     <DropdownMenuItem>Support</DropdownMenuItem>
+                </Link>
+
+                <DropdownMenuSeparator />
+
+                <Link to="/ai-recommendation">
+                    <DropdownMenuItem>AI Recommendation</DropdownMenuItem>
                 </Link>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -13,7 +13,7 @@ const COOKIE_OPTIONS = {
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, dob, password } = req.body;
-    if (![firstName, lastName, email, dob, password].every(value => typeof value === 'string' && value.trim())) {
+    if (![firstName, lastName, email, dob, password]) {
       return res.status(400).json({ message: 'First name, last name, email, date of birth, and password are required' });
     }
 
@@ -43,7 +43,7 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (typeof email !== 'string' || typeof password !== 'string' || !password) {
+    if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 

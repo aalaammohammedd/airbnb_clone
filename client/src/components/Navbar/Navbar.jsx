@@ -1,4 +1,3 @@
-import { isAuthenticated } from "@/utils/cookies";
 import i18n from "@/utils/i18n";
 import {
   CircleUserRound,
@@ -29,9 +28,9 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
   const { t } = useTranslation();
   const lang = useSelector((state) => state.lang.default_language);
   const direction = useSelector((state) => state.lang.direction);
+  const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
 
   const location = useLocation();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   const [scrolled, setScrolled] = useState(false);
@@ -42,11 +41,6 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
     ["/homes", "/experiences", "/services"].includes(location.pathname) ||
     location.pathname.startsWith("/experiences/search") ||
     location.pathname.startsWith("/services/search");
-
-  // Check authentication status
-  useEffect(() => {
-    setIsLoggedIn(isAuthenticated());
-  }, [location]);
 
   useEffect(() => {
     i18n.changeLanguage(lang);

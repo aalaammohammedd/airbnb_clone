@@ -11,7 +11,6 @@ import {
 import WishlistDialog from "@/components/Wishlist/WishlistDialog";
 import ShareModal from "./ShareModal";
 import PhotoGalleryModal from "./PhotoGalleryModal";
-import { isAuthenticated } from "@/utils/cookies";
 
 const ListingGallery = ({ title, images = [], description }) => {
   // Get listing ID from URL params
@@ -23,6 +22,7 @@ const ListingGallery = ({ title, images = [], description }) => {
   const savedListings = useSelector((state) => state.wishlist.savedListings);
   const collections = useSelector((state) => state.wishlist.collections);
   const user = useSelector((state) => state.auth.user);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const showCreateDialog = useSelector(
     (state) => state.wishlist.showCreateDialog
   );
@@ -52,7 +52,7 @@ const ListingGallery = ({ title, images = [], description }) => {
     urls[4] || "https://placehold.co/600x400?text=Photo+5",
   ];
   const handleHeartClick = () => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate("/login");
       return;
     }

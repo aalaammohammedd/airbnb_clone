@@ -8,7 +8,6 @@ import {
   addToExistingCollection,
 } from "@/store/Slices/wishlistSlice";
 import { Button } from "@/components/ui/button";
-import { isAuthenticated } from "@/utils/cookies";
 
 const CollectionDetail = () => {
   const dispatch = useDispatch();
@@ -19,20 +18,16 @@ const CollectionDetail = () => {
     (state) => state.wishlist
   );
 
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState({});
   const [removedListings, setRemovedListings] = useState(new Set()); // ⭐ رجعناه بس للـ UI بس
 
   useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate("/login");
-      return;
-    }
-
-    if (collectionId) {
+    if (isAuthenticated && collectionId) {
       dispatch(fetchSingleCollection(collectionId));
     }
-  }, [dispatch, collectionId, navigate]);
+  }, [dispatch, collectionId, isAuthenticated]);
 
   const handleToggleWishlist = async (listingId) => {
     const isRemoved = removedListings.has(listingId);

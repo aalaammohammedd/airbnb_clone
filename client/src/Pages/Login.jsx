@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import AuthShell from "../components/Auth/AuthShell";
 import { setProfile } from "../store/Slices/authslice";
 
 export default function Login() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +46,21 @@ export default function Login() {
       if (result.user) dispatch(setProfile(result.user));
       localStorage.removeItem("pendingVerificationEmail");
       localStorage.removeItem("registerEmail");
-      navigate("/homes");
+      const returnPath = location.state?.from?.pathname;
+      const isInternalReturnPath =
+        typeof returnPath === "string" &&
+        returnPath.startsWith("/") &&
+        !returnPath.startsWith("//");
+      navigate(
+        isInternalReturnPath
+          ? {
+              pathname: returnPath,
+              search: location.state.from.search,
+              hash: location.state.from.hash,
+            }
+          : "/homes",
+        { replace: true }
+      );
     } catch (requestError) {
       setError(requestError.message || "Login failed");
     } finally {

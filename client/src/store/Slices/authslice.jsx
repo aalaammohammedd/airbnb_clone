@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 // Profile fetching stays in Redux so shared profile consumers use one source of truth.
 export const fetchUserProfile = createAsyncThunk(
@@ -28,7 +28,7 @@ const authSlice = createSlice({
   initialState: {
     user: null,
     isAuthenticated: false,
-    loading: false,
+    loading: true,
     error: null,
     resetEmail: "",
   },
@@ -36,11 +36,13 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.isAuthenticated = false;
+      state.loading = false;
       state.error = null;
     },
     setProfile: (state, action) => {
       state.user = action.payload;
       state.isAuthenticated = true;
+      state.loading = false;
       state.error = null;
     },
     setResetEmail: (state, action) => {
