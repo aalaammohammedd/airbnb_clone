@@ -1,13 +1,18 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../store/Slices/authslice";
-import { useNavigate, Link } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import AuthShell from "../components/Auth/AuthShell";
+import { setProfile } from "../store/Slices/authslice";
 
 export default function Login() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -15,19 +20,52 @@ export default function Login() {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = (data) => {
-    dispatch(loginUser(data)).then((res) => {
-      if (res.meta.requestStatus === "fulfilled") {
-        localStorage.removeItem("pendingVerificationEmail");
-        localStorage.removeItem("registerEmail");
-        navigate("/homes"); // Redirect after successful login
-      } else if (res.payload?.toLowerCase().includes("verify your email")) {
-        const email = data.email.trim().toLowerCase();
-        localStorage.setItem("pendingVerificationEmail", email);
-        localStorage.removeItem("registerEmail");
-        navigate("/verify-account", { state: { email } });
+  const onSubmit = async (data) => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.message?.toLowerCase().includes("verify your email")) {
+          const email = data.email.trim().toLowerCase();
+          localStorage.setItem("pendingVerificationEmail", email);
+          localStorage.removeItem("registerEmail");
+          navigate("/verify-account", { state: { email } });
+          return;
+        }
+        throw new Error(result.message || "Login failed");
       }
-    });
+
+      if (result.user) dispatch(setProfile(result.user));
+      localStorage.removeItem("pendingVerificationEmail");
+      localStorage.removeItem("registerEmail");
+      const returnPath = location.state?.from?.pathname;
+      const isInternalReturnPath =
+        typeof returnPath === "string" &&
+        returnPath.startsWith("/") &&
+        !returnPath.startsWith("//");
+      navigate(
+        isInternalReturnPath
+          ? {
+              pathname: returnPath,
+              search: location.state.from.search,
+              hash: location.state.from.hash,
+            }
+          : "/homes",
+        { replace: true }
+      );
+    } catch (requestError) {
+      setError(requestError.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,19 +98,29 @@ export default function Login() {
 
           <div className="space-y-1.5">
             <label htmlFor="login-password" className="block text-sm font-medium text-[#222]">Password</label>
-            <input
-              id="login-password"
-              type="password"
-              {...register("password", {
-                required: "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters long",
-                },
-              })}
-              className="h-12 w-full rounded-lg border border-[#b0b0b0] px-3 text-sm text-[#222] outline-none transition placeholder:text-[#717171] focus:border-[#222] focus:ring-1 focus:ring-[#222]"
-              placeholder="Enter your password"
-            />
+            <div className="relative">
+              <input
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                {...register("password", {
+                  required: "Password is required",
+                  minLength: {
+                    value: 6,
+                    message: "Password must be at least 6 characters long",
+                  },
+                })}
+                className="h-12 w-full rounded-lg border border-[#b0b0b0] px-3 pr-12 text-sm text-[#222] outline-none transition placeholder:text-[#717171] focus:border-[#222] focus:ring-1 focus:ring-[#222]"
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-[#717171] hover:text-[#222]"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors.password && (
               <p className="text-sm text-red-600" role="alert">
                 {errors.password.message}
@@ -92,7 +140,7 @@ export default function Login() {
             disabled={loading}
             className="h-12 w-full rounded-lg bg-[#ff385c] text-sm font-semibold text-white transition hover:bg-[#e61e4d] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Loading..." : "Login"}
+            {loading ? "Logging in..." : "Login"}
           </button>
       </form>
       <div className="mt-5 flex flex-col items-center gap-2 text-sm">

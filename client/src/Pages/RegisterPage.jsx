@@ -4,9 +4,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
 import AuthShell from "../components/Auth/AuthShell";
-import { registerUser } from "../store/Slices/authslice";
 
 const registerSchema = z
   .object({
@@ -46,10 +44,9 @@ function FormField({ id, label, error, children }) {
   );
 }
 
-const RegisterStep1 = () => {
-  const dispatch = useDispatch();
+const RegisterPage = () => {
   const navigate = useNavigate();
-  const { loading, error: serverError } = useSelector((state) => state.auth);
+  const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -73,15 +70,26 @@ const RegisterStep1 = () => {
       password: data.password,
     };
 
+    setLoading(true);
     try {
-      await dispatch(registerUser(registrationData)).unwrap();
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(registrationData),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Registration failed");
+      }
+
       localStorage.setItem("pendingVerificationEmail", email);
       localStorage.removeItem("registerEmail");
       navigate("/verify-account", { state: { email } });
     } catch (error) {
-      setSubmitError(
-        typeof error === "string" ? error : error?.message || "Registration failed"
-      );
+      setSubmitError(error.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,9 +188,9 @@ const RegisterStep1 = () => {
           </div>
         </FormField>
 
-        {(submitError || serverError) && (
+        {submitError && (
           <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-            {submitError || serverError}
+            {submitError}
           </p>
         )}
 
@@ -217,4 +225,4 @@ const RegisterStep1 = () => {
   );
 };
 
-export default RegisterStep1;
+export default RegisterPage;

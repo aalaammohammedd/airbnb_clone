@@ -1,27 +1,39 @@
 import { useForm } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
-import { verifyResetCode } from "../../store/Slices/authslice";
+import { useSelector } from "react-redux";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 
 export default function VerifyCodePopup({ onClose }) {
-  const dispatch = useDispatch();
-  const { loading, error, resetEmail } = useSelector((state) => state.auth);
+  const { resetEmail } = useSelector((state) => state.auth);
   const { register, handleSubmit, formState: { errors } } = useForm();
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   const onSubmit = async (data) => {
-    const res = await dispatch(
-      verifyResetCode({ code: data.code, email: resetEmail })
-    );
-
-    if (res.meta.requestStatus === "fulfilled") {
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+    try {
+      const response = await fetch("/api/reset/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ code: data.code, email: resetEmail }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Invalid or expired code");
+      }
       setSuccessMessage(" Code verified. You can reset your password.");
-        navigate("/reset-password");
-      
+      navigate("/reset-password");
+    } catch (requestError) {
+      setError(requestError.message || "Invalid or expired code");
+    } finally {
+      setLoading(false);
     }
   };
 

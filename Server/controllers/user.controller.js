@@ -85,7 +85,7 @@ exports.deleteUser = async (req, res) => {
 
 
 const FIELDS_TO_RETURN = [
-  'firstName', 'lastName', 'email', 'isVerified', 'profilePhoto', 'interests', 'aboutMe', 'role', 'reviews',
+  'firstName', 'lastName', 'email', 'phone', 'dob', 'createdAt', 'isVerified', 'profilePhoto', 'interests', 'aboutMe', 'role', 'reviews',
   'location', 'listings', 'bookings', 'favorites', 'recentlyViewed', 'services',
   'experiences',
 ].join(' ');
@@ -117,31 +117,54 @@ exports.getProfile = async (req, res) => {
 
 
 const EDITABLE_FIELDS = [
-  'interests', 'aboutMe', 'location',
+  'firstName', 'lastName', 'email', 'phone', 'dob', 'interests', 'aboutMe', 'location',
 ];
 
 exports.updateProfile = async (req, res) => {
   try {
     const updates = {};
+    const unset = {};
 
     for (const key of EDITABLE_FIELDS) {
-      if (req.body.hasOwnProperty(key)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        if ((key === 'phone' || key === 'dob') && req.body[key] === '') {
+          unset[key] = 1;
+          continue;
+        }
         updates[key] = req.body[key];
       }
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (Object.keys(updates).length === 0 && Object.keys(unset).length === 0) {
       return res.status(400).json({ message: 'No valid fields provided for update.' });
     }
 
+    if (
+      typeof updates.email === 'string' &&
+      updates.email.trim().toLowerCase() !== req.user.email
+    ) {
+      updates.email = updates.email.trim().toLowerCase();
+      updates.isVerified = false;
+      unset.verificationCode = 1;
+      unset.verificationCodeSentAt = 1;
+      updates.verificationCodeAttempts = 0;
+    }
+
+    const updateOperation = {};
+    if (Object.keys(updates).length) updateOperation.$set = updates;
+    if (Object.keys(unset).length) updateOperation.$unset = unset;
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
-      { $set: updates },
+      updateOperation,
       { new: true, runValidators: true }
     ).select(FIELDS_TO_RETURN);
 
     res.status(200).json(updatedUser);
   } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.email) {
+      return res.status(409).json({ message: 'Email is already in use.' });
+    }
     res.status(400).json({ message: error.message || 'Failed to update profile.' });
   }
 };

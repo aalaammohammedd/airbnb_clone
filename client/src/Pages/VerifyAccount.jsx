@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch } from "react-redux";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import {
-  fetchUserProfile,
-  resendVerification,
-  verifyEmail,
-} from "../store/Slices/authslice";
+import { fetchUserProfile } from "../store/Slices/authslice";
 import AuthShell from "../components/Auth/AuthShell";
 
 const RESEND_DELAY_SECONDS = 30;
@@ -48,10 +44,23 @@ export default function VerifyAccount() {
     setSuccessMessage("");
     setActionError("");
     try {
-      const result = await dispatch(resendVerification({ email })).unwrap();
+      const response = await fetch("/api/mail/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        const resendError = new Error(
+          result.message || "Failed to send verification code"
+        );
+        resendError.resendAfterSeconds = result.resendAfterSeconds;
+        throw resendError;
+      }
       setCodeSent(true);
       setResendCountdown(result.resendAfterSeconds || RESEND_DELAY_SECONDS);
-      setSuccessMessage(result.message);
+      setSuccessMessage(result.message || "Verification code sent successfully");
     } catch (error) {
       if (error?.resendAfterSeconds) {
         setCodeSent(true);
@@ -72,16 +81,28 @@ export default function VerifyAccount() {
     setActiveAction("verify");
     setActionError("");
     try {
-      await dispatch(
-        verifyEmail({ email, code: verificationCode.trim().toLowerCase() })
-      ).unwrap();
+      const response = await fetch("/api/mail/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          code: verificationCode.trim().toLowerCase(),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Account verification failed");
+      }
       await dispatch(fetchUserProfile()).unwrap();
       localStorage.removeItem("pendingVerificationEmail");
       localStorage.removeItem("registerEmail");
       navigate("/homes", { replace: true });
     } catch (error) {
       setActionError(
-        typeof error === "string" ? error : "Account verification failed"
+        typeof error === "string"
+          ? error
+          : error?.message || "Account verification failed"
       );
     } finally {
       setActiveAction(null);
