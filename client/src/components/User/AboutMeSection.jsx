@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchUserProfile, setProfile } from '../../store/Slices/authslice';
 import { FaGlobeAmericas, FaStar, FaEdit } from 'react-icons/fa';
 import axios from 'axios';
+import { apiUrl } from '../../utils/api';
 
 const transformDataForDispatch = (data) => {
     const finalData = { ...data };
@@ -184,7 +185,7 @@ const AboutMeSection = () => {
         setIsSaving(true);
         setUpdateError('');
         try {
-            const response = await fetch('/api/profile', {
+            const response = await fetch(apiUrl('profile'), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

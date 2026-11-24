@@ -1,11 +1,12 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { apiUrl } from "../../utils/api";
 
 // Profile fetching stays in Redux so shared profile consumers use one source of truth.
 export const fetchUserProfile = createAsyncThunk(
   'auth/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const res = await fetch('/api/profile', {
+      const res = await fetch(apiUrl("profile"), {
         method: 'GET',
         credentials: "include",
       });
