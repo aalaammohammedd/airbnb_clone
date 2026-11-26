@@ -68,36 +68,14 @@ const ServiceListingForm = ({ onBack }) => {
 
   const handleSubmit = async () => {
     try {
-      const formData = new FormData();
-
-      // Basic fields
-      formData.append('title', listingData.title);
-      formData.append('description', listingData.description);
-      formData.append('serviceCategory', listingData.serviceCategory);
-      formData.append('hourlyRate', listingData.hourlyRate);
-
-      // Construct Location object and append as JSON
       const locationData = {
         serviceArea: listingData.serviceArea,
         city: listingData.city,
         country: listingData.country,
-        coordinates: listingData.coordinates
+        coordinates: listingData.coordinates,
       };
-      formData.append('location', JSON.stringify(locationData));
 
-      // Append arrays/objects as JSON
-      formData.append('packages', JSON.stringify(listingData.packages));
-      formData.append('requirements', JSON.stringify(listingData.requirements));
-      formData.append('skills', JSON.stringify(listingData.skills));
-      formData.append('serviceDetails', JSON.stringify(listingData.serviceDetails));
-
-      // Parse Availability (assuming simple "9:00 AM - 5:00 PM" string for now, adapting to backend)
-      // Backend expects: [{ day, startTime, endTime, isAvailable }]
-      // Frontend has: [{ day, hours: "9:00 AM - 5:00 PM" }]
       const parsedAvailability = listingData.availability.map(item => {
-        // Simple logic to extract times, can be improved with proper TimePicker
-        // Assuming format "HH:mm AM - HH:mm PM" or similar
-        // For now, we'll try to split by "-"
         const [startStr, endStr] = item.hours.split('-').map(s => s.trim());
         return {
           day: item.day,
@@ -106,23 +84,18 @@ const ServiceListingForm = ({ onBack }) => {
           isAvailable: true
         };
       });
-      formData.append('availability', JSON.stringify(parsedAvailability));
 
-      // Append Images
-      if (listingData.images && listingData.images.length > 0) {
-        listingData.images.forEach(image => {
-          if (image instanceof File) {
-            formData.append('images', image);
-          }
-        });
-      }
-
-      await dispatch(createService(formData)).unwrap();
+      await dispatch(
+        createService({
+          ...listingData,
+          location: locationData,
+          availability: parsedAvailability,
+        })
+      ).unwrap();
       toast.success("Service listing created successfully!");
       onBack();
     } catch (error) {
-      console.error("Submission Error:", error);
-      toast.error(error || "Failed to create service listing");
+      toast.error(error?.message || error || "Failed to create service listing");
     }
   };
 

@@ -22,6 +22,7 @@ const experienceRoutes = require("./routes/experience.routes");
 const serviceRoutes = require("./routes/service.routes");
 const recentlyViewedRoute = require("./routes/recentlyViewed.routes");
 const reportRoute = require("./routes/report.routes");
+const uploadRoutes = require("./routes/upload.routes");
 
 const app = express();
 const server = http.createServer(app);
@@ -92,6 +93,7 @@ app.use("/api/reports", reportRoute);
 app.use("/api/experiences", experienceRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // Root route
 app.get("/api", (req, res) => {

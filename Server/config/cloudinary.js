@@ -1,28 +1,76 @@
 const { v2: cloudinary } = require("cloudinary");
-const fs = require("fs");
+const crypto = require("crypto");
 
-const uploadOnCloudinary = async (filePath) => {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-  });
+const getCloudinaryCredentials = () => {
+  const { CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET } =
+    process.env;
+
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    throw new Error("Cloudinary image uploads are not configured.");
+  }
+
+  return {
+    cloudName: CLOUDINARY_CLOUD_NAME,
+    apiKey: CLOUDINARY_API_KEY,
+    apiSecret: CLOUDINARY_API_SECRET,
+  };
+};
+
+const createImageUploadSignature = (userId) => {
+  const { cloudName, apiKey, apiSecret } = getCloudinaryCredentials();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const publicId = `airbnb_clone/${userId}/${crypto
+    .randomBytes(16)
+    .toString("hex")}`;
+  const allowedFormats = "jpg,jpeg,png,webp";
+  const paramsToSign = {
+    allowed_formats: allowedFormats,
+    public_id: publicId,
+    timestamp,
+  };
+
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    public_id: publicId,
+    allowed_formats: allowedFormats,
+    signature: cloudinary.utils.api_sign_request(paramsToSign, apiSecret),
+  };
+};
+
+const isOwnedCloudinaryImage = (imageUrl, userId) => {
   try {
-    if (!fs.existsSync(filePath)) {
-      throw new Error("File does not exist: " + filePath);
-    }
-    // Upload file to Cloudinary
-    const result = await cloudinary.uploader.upload(filePath, {
-      folder: "airbnb_clone",
-    });
-
-    // Remove file from local uploads folder after successful upload to Cloudinary
-    fs.unlinkSync(filePath);
-    return result;
-  } catch (error) {
-    console.error("Error uploading to Cloudinary:", error);
-    throw error;
+    const parsedUrl = new URL(imageUrl);
+    const expectedFolder = `/airbnb_clone/${userId}/`;
+    return (
+      parsedUrl.protocol === "https:" &&
+      parsedUrl.hostname === "res.cloudinary.com" &&
+      parsedUrl.pathname.includes("/image/upload/") &&
+      parsedUrl.pathname.includes(expectedFolder)
+    );
+  } catch {
+    return false;
   }
 };
 
-module.exports = { uploadOnCloudinary };
+const validateCloudinaryImageUrls = (imageUrls, userId) => {
+  if (
+    !Array.isArray(imageUrls) ||
+    imageUrls.length > 10 ||
+    imageUrls.some((imageUrl) => !isOwnedCloudinaryImage(imageUrl, userId))
+  ) {
+    const error = new Error(
+      "Images must be valid Cloudinary URLs uploaded by you (maximum 10)."
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+  return imageUrls;
+};
+
+module.exports = {
+  createImageUploadSignature,
+  isOwnedCloudinaryImage,
+  validateCloudinaryImageUrls,
+};

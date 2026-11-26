@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 
 const FallbackInput = (props) => <input {...props} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" />;
 const FallbackButton = ({ children, className, ...props }) => <button {...props} className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 ${className}`}>{children}</button>;
@@ -83,72 +84,27 @@ const EditPage = () => {
         e.preventDefault();
         setSaving(true);
         try {
-            let result;
+            const uploadedImages = await uploadImagesToCloudinary(newImages);
+
             if (type === "listing") {
-                const data = new FormData();
-                Object.keys(formData).forEach(key => {
-                    // For listing, we don't send existing images in 'images' key because backend appends new files
-                    if (key !== 'images' && key !== '_id' && key !== 'hostId' && key !== 'reviews' && key !== 'amenities') {
-                        if (typeof formData[key] === 'object') {
-                            data.append(key, JSON.stringify(formData[key]));
-                        } else {
-                            data.append(key, formData[key]);
-                        }
-                    }
-                });
-                // Append ID for the thunk to know where to update
-                data.append('id', id);
-
-                newImages.forEach((file) => {
-                    data.append("images", file);
-                });
-
-                result = await dispatch(updateListing(data)).unwrap();
+                const payload = { ...formData, id, images: uploadedImages };
+                delete payload._id;
+                delete payload.hostId;
+                delete payload.reviews;
+                delete payload.amenities;
+                await dispatch(updateListing(payload)).unwrap();
             } else if (type === "experience") {
-                // Prepare mixed images array: existing objects + new Base64 strings
-                const existingImages = images.map(img => (typeof img === 'string' ? { url: img } : img));
-
-                let base64NewImages = [];
-                if (newImages.length > 0) {
-                    base64NewImages = await Promise.all(newImages.map(file => {
-                        return new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () => resolve(reader.result);
-                            reader.onerror = reject;
-                            reader.readAsDataURL(file);
-                        });
-                    }));
-                }
-
-                const updatePayload = {
-                    ...formData,
-                    images: [...existingImages, ...base64NewImages] // Combine them
-                };
-
-                result = await dispatch(updateExperience({ id, data: updatePayload })).unwrap();
+                const updatePayload = { ...formData, images: uploadedImages };
+                await dispatch(updateExperience({ id, data: updatePayload })).unwrap();
 
             } else if (type === "service") {
-                const data = new FormData();
-                Object.keys(formData).forEach(key => {
-                    // For service, similarly to listing, we assume backend appends new files.
-                    // Service controller uses req.files to add images.
-                    // It also looks at req.body.images, but mostly for "additions" or if passed as JSON.
-                    // Current Service controller appends req.files to existing.
-                    // We WON'T send existing images key to avoid confusion unless backend used it to REPLACE.
-                    // Service controller: let uploadedImages = service.images; ... then appends req.files.
-                    if (key !== 'images' && key !== '_id' && key !== 'host' && key !== 'createdAt' && key !== 'updatedAt' && key !== '__v') {
-                        if (typeof formData[key] === 'object') {
-                            data.append(key, JSON.stringify(formData[key]));
-                        } else {
-                            data.append(key, formData[key]);
-                        }
-                    }
-                });
-                newImages.forEach((file) => {
-                    data.append("images", file);
-                });
-
-                result = await dispatch(updateService({ id, data })).unwrap();
+                const data = { ...formData, images: uploadedImages };
+                delete data._id;
+                delete data.host;
+                delete data.createdAt;
+                delete data.updatedAt;
+                delete data.__v;
+                await dispatch(updateService({ id, data })).unwrap();
             }
 
             toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully!`);

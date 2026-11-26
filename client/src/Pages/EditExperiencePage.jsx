@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Compass, MapPin, DollarSign, Users, Clock, Calendar, CheckCircle, Loader2, Plus, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,7 +48,7 @@ export default function EditExperiencePage() {
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
     const [newImages, setNewImages] = useState([]);
     const [removedImages, setRemovedImages] = useState([]);
 
@@ -107,7 +108,7 @@ export default function EditExperiencePage() {
                     images: data.data.images ?? [],
                     schedule: data.data.schedule ?? [],
                 });
-            } catch (err) {
+            } catch {
                 setError("Failed to load listing");
             } finally {
                 setLoading(false);
@@ -206,6 +207,10 @@ export default function EditExperiencePage() {
     };
 
     const handleRemoveImage = (index) => {
+        const image = formData.images[index];
+        if (image?._id) {
+            setRemovedImages((prev) => [...prev, image._id]);
+        }
         setFormData((prev) => ({
             ...prev,
             images: prev.images.filter((_, i) => i !== index),
@@ -218,48 +223,35 @@ export default function EditExperiencePage() {
         setIsSubmitting(true);
 
         try {
-            const formDataToSend = new FormData();
-
-            // Append all fields
-            formDataToSend.append("title", formData.title);
-            formDataToSend.append("description", formData.description);
-            formDataToSend.append("experienceType", formData.experienceType);
-            formDataToSend.append(
-                "location",
-                JSON.stringify({
+            const images = await uploadImagesToCloudinary(newImages);
+            await axios.put(`/api/experiences/${id}`, {
+                title: formData.title,
+                description: formData.description,
+                experienceType: formData.experienceType,
+                location: {
                     street: formData.street,
                     city: formData.city,
                     country: formData.country,
                     coordinates: formData.coordinates,
-                })
-            );
-            formDataToSend.append("pricePerPerson", formData.pricePerPerson);
-            formDataToSend.append("duration", formData.duration);
-            formDataToSend.append("groupSize", JSON.stringify(formData.groupSize));
-            formDataToSend.append("schedule", JSON.stringify(formData.schedule));
-            formDataToSend.append("ageRequirement", formData.ageRequirement);
-            formDataToSend.append("fitnessLevel", formData.fitnessLevel);
-            formDataToSend.append("requirements", JSON.stringify(formData.requirements));
-            formDataToSend.append("inclusions", JSON.stringify(formData.inclusions));
-
-            // Append removed images
-            if (removedImages.length > 0) {
-                formDataToSend.append("removedImages", JSON.stringify(removedImages));
-            }
-
-            // Append new images
-            newImages.forEach((file) => {
-                formDataToSend.append("images", file);
-            });
-
-            await axios.put(`/api/experiences/${id}`, formDataToSend, {
-                headers: { "Content-Type": "multipart/form-data" },
+                },
+                pricePerPerson: formData.pricePerPerson,
+                duration: formData.duration,
+                groupSize: formData.groupSize,
+                schedule: formData.schedule,
+                ageRequirement: formData.ageRequirement,
+                fitnessLevel: formData.fitnessLevel,
+                requirements: formData.requirements,
+                inclusions: formData.inclusions,
+                removedImages,
+                images,
+            }, {
+                withCredentials: true,
             });
 
             toast.success("Experience updated successfully!");
             navigate("/host/dashboard");
         } catch (err) {
-            toast.error(err.response?.data?.message || "Update failed");
+            toast.error(err.response?.data?.message || err.message || "Update failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -492,10 +484,7 @@ export default function EditExperiencePage() {
                                             type="button"
                                             variant="destructive"
                                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"
-                                            onClick={() => {
-                                                setRemovedImages((prev) => [...prev, image._id]);
-                                                handleRemoveImage(index);
-                                            }}
+                                            onClick={() => handleRemoveImage(index)}
                                         >
                                             Remove
                                         </Button>

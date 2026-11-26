@@ -10,7 +10,6 @@ const {
   getServiceStats
 } = require('../controllers/service.controller.js');
 const auth = require('../middleware/userMiddleware.js');
-const { default: upload } = require('../middleware/multer.js');
 
 // Public routes
 router.get('/stats', getServiceStats);
@@ -21,8 +20,8 @@ router.get('/host/my-services', auth, getHostServices);
 router.get('/:id', getService);
 
 // Protected routes (require authentication)
-router.post('/', auth, upload.array('images', 10), createService);
-router.put('/:id', auth, upload.array('images', 10), updateService);
+router.post('/', auth, createService);
+router.put('/:id', auth, updateService);
 router.delete('/:id', auth, deleteService);
 
 

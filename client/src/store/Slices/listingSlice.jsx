@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 
 // ============= Async thunk actions for listings =================
 // ------------- 1. Get all listings --------------
@@ -38,68 +39,34 @@ export const getHostListings = createAsyncThunk(
 // ------------- 3. Create a new listing --------------
 export const createListing = createAsyncThunk(
   "listing/createListing",
-  async (newListing) => {
-    const formData = new FormData();
-
-    // add text fields...
-    formData.append("title", newListing.title);
-    formData.append("description", newListing.description);
-    formData.append("propertyType", newListing.propertyType);
-    formData.append("pricePerNight", newListing.pricePerNight);
-    formData.append("maxGuests", newListing.maxGuests);
-    formData.append("cleaningFee", newListing.cleaningFee || 0);
-    formData.append("bedrooms", newListing.bedrooms || 1);
-    formData.append("bathrooms", newListing.bathrooms || 1);
-
-    // Location fields
-    formData.append("street", newListing.street || "");
-    formData.append("city", newListing.city || "");
-    formData.append("country", newListing.country || "");
-    formData.append(
-      "coordinates",
-      JSON.stringify(newListing.coordinates || { lat: 0, lng: 0 })
-    );
-
-    // Amenities
-    formData.append("amenities", JSON.stringify(newListing.amenities || []));
-
-    // Availability
-    formData.append(
-      "availability",
-      JSON.stringify(newListing.availability || [])
-    );
-
-    // Images - MUST be File objects!
-    newListing.images.forEach((file) => {
-      console.log("FILE BEING SENT:", file);
-      formData.append("images", file);
-    });
-
-    const response = await axios.post("/api/listings", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    return response.data;
+  async (newListing, { rejectWithValue }) => {
+    try {
+      const images = await uploadImagesToCloudinary(newListing.images || []);
+      const response = await axios.post(
+        "/api/listings",
+        { ...newListing, images },
+        { withCredentials: true }
+      );
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   }
 );
 
 // ------------- 4. Update an existing listing --------------
 export const updateListing = createAsyncThunk(
   "listing/updateListing",
-  async (updatedListing) => {
-    const isFormData = updatedListing instanceof FormData;
-    const id = isFormData ? updatedListing.get('id') : updatedListing.id;
-
-    const config = {
-      headers: isFormData ? { "Content-Type": "multipart/form-data" } : {}
-    };
-
-    const response = await axios.put(
-      `/api/listings/${id}`,
-      updatedListing,
-      config
-    );
-    return response.data;
+  async (updatedListing, { rejectWithValue }) => {
+    try {
+      const { id, ...payload } = updatedListing;
+      const response = await axios.put(`/api/listings/${id}`, payload, {
+        withCredentials: true,
+      });
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   }
 );
 

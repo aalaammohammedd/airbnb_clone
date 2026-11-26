@@ -1,12 +1,26 @@
 const Listing = require("../models/Listing.model");
 const Amenities = require("../models/Amenities.model");
-const { uploadOnCloudinary } = require("../config/cloudinary");
+const { validateCloudinaryImageUrls } = require("../config/cloudinary");
+
+const parseIfString = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const getImageUrls = (images, userId) => {
+  const parsedImages = parseIfString(images || []);
+  return validateCloudinaryImageUrls(parsedImages, userId);
+};
 // Create new listing
 const createListing = async (req, res) => {
   try {
     const hostId = req.user.id;
 
-    // All fields are strings when sent via FormData
+    // Structured request fields may arrive as JSON strings or parsed JSON values.
     const {
       title,
       description,
@@ -37,9 +51,9 @@ const createListing = async (req, res) => {
     }
 
     // Convert string fields to correct types
-    const parsedAmenities = amenities ? JSON.parse(amenities) : [];
-    const parsedCoordinates = coordinates ? JSON.parse(coordinates) : {};
-    const parsedAvailability = availability ? JSON.parse(availability) : [];
+    const parsedAmenities = parseIfString(amenities) || [];
+    const parsedCoordinates = parseIfString(coordinates) || {};
+    const parsedAvailability = parseIfString(availability) || [];
 
     const parsedPricePerNight = Number(pricePerNight);
     const parsedMaxGuests = Number(maxGuests);
@@ -55,17 +69,10 @@ const createListing = async (req, res) => {
       });
     }
 
-    // Handle images
-    const uploadedImages = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        uploadedImages.push({
-          url: result.secure_url,
-          caption: caption || "Listing photo",
-        });
-      }
-    }
+    const uploadedImages = getImageUrls(req.body.images, hostId).map((url) => ({
+      url,
+      caption: caption || "Listing photo",
+    }));
 
     // Format availability
     const formattedAvailability = parsedAvailability.map((range) => {
@@ -97,7 +104,7 @@ const createListing = async (req, res) => {
     return res.status(201).json(newListing);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: error.message });
+    return res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -242,20 +249,6 @@ const updateListing = async (req, res) => {
       return res.status(404).json({ message: "Listing not found" });
     }
 
-    // parsing string to json
-    const parseIfString = (value) => {
-      if (typeof value === "string") {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    };
-
-
-
     //check if he is the host of the listing not guest [authentication]
     if (listing.hostId.toString() !== req.user.id) {
       return res
@@ -265,8 +258,9 @@ const updateListing = async (req, res) => {
 
     /* ---------- REMOVE IMAGES ---------- */
     if (req.body.removedImages) {
-      const removedImages = Array.isArray(parseIfString(req.body.removedImages))
-        ? parseIfString(req.body.removedImages)
+      const parsedRemovedImages = parseIfString(req.body.removedImages);
+      const removedImages = Array.isArray(parsedRemovedImages)
+        ? parsedRemovedImages
         : [];
       listing.images = listing.images.filter(
         img => !removedImages.includes(img._id.toString())
@@ -274,14 +268,11 @@ const updateListing = async (req, res) => {
     }
 
     /* ---------- ADD NEW IMAGES ---------- */
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        listing.images.push({
-          url: result.secure_url,
-          caption: "Listing photo",
-        });
-      }
+    if (req.body.images !== undefined) {
+      const newImageUrls = getImageUrls(req.body.images, req.user.id);
+      listing.images.push(
+        ...newImageUrls.map((url) => ({ url, caption: "Listing photo" }))
+      );
     }
 
     /* ---------- UPDATE OTHER FIELDS ---------- */
@@ -358,7 +349,7 @@ const updateListing = async (req, res) => {
     await listing.save();
     res.status(200).json(listing);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 }
 

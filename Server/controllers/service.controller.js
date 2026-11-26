@@ -1,6 +1,20 @@
-const { uploadOnCloudinary } = require('../config/cloudinary');
+const { validateCloudinaryImageUrls } = require('../config/cloudinary');
 const Service = require('../models/Service.model');
 const User = require('../models/User.model');
+
+const parseIfString = (value) => {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const getImageUrls = (images, userId) => {
+  const parsedImages = parseIfString(images || []);
+  return validateCloudinaryImageUrls(parsedImages, userId);
+};
 
 // @desc    Create new service listing
 // @route   POST /api/services
@@ -20,25 +34,15 @@ const createService = async (req, res) => {
       serviceDetails
     } = req.body;
 
-    // Parse nested objects if they are strings (from FormData)
-    if (typeof location === 'string') location = JSON.parse(location);
-    if (typeof packages === 'string') packages = JSON.parse(packages);
-    if (typeof availability === 'string') availability = JSON.parse(availability);
-    if (typeof requirements === 'string') requirements = JSON.parse(requirements);
-    if (typeof skills === 'string') skills = JSON.parse(skills);
-    if (typeof serviceDetails === 'string') serviceDetails = JSON.parse(serviceDetails);
-
-    // Handle images
-    const uploadedImages = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        uploadedImages.push({
-          url: result.secure_url,
-          caption: "Service photo",
-        });
-      }
-    }
+    location = parseIfString(location);
+    packages = parseIfString(packages);
+    availability = parseIfString(availability);
+    requirements = parseIfString(requirements);
+    skills = parseIfString(skills);
+    serviceDetails = parseIfString(serviceDetails);
+    const uploadedImages = getImageUrls(req.body.images, req.user._id).map(
+      (url) => ({ url, alt: "Service photo" })
+    );
 
     const service = await Service.create({
       title,
@@ -64,7 +68,7 @@ const createService = async (req, res) => {
       data: service
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(error.statusCode || 400).json({
       success: false,
       message: error.message
     });
@@ -194,16 +198,6 @@ const updateService = async (req, res) => {
       status
     } = req.body;
 
-    // Handle images
-    let uploadedImages = service.images;
-    if (req.files && req.files.length > 0) {
-      const newImages = req.files.map(file => ({
-        url: `/uploads/${file.filename}`,
-        alt: file.originalname
-      }));
-      uploadedImages = [...uploadedImages, ...newImages];
-    }
-
     const updateData = {};
 
     // Basic fields
@@ -253,39 +247,21 @@ const updateService = async (req, res) => {
           : serviceDetails;
     }
 
-    // Images
-    // Remove deleted images
-    // Remove images from uploadOnCloudinary
-    // parsing string to json
-    const parseIfString = (value) => {
-      if (typeof value === "string") {
-        try {
-          return JSON.parse(value);
-        } catch {
-          return value;
-        }
-      }
-      return value;
-    };
-    /* ---------- REMOVE IMAGES ---------- */
     if (req.body.removedImages) {
-      const removedImages = Array.isArray(parseIfString(req.body.removedImages))
-        ? parseIfString(req.body.removedImages)
+      const parsedRemovedImages = parseIfString(req.body.removedImages);
+      const removedImages = Array.isArray(parsedRemovedImages)
+        ? parsedRemovedImages
         : [];
       service.images = service.images.filter(
         img => !removedImages.includes(img._id.toString())
       );
     }
 
-    /* ---------- ADD NEW IMAGES ---------- */
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        service.images.push({
-          url: result.secure_url,
-          caption: "Service photo",
-        });
-      }
+    if (req.body.images !== undefined) {
+      const newImageUrls = getImageUrls(req.body.images, req.user._id);
+      service.images.push(
+        ...newImageUrls.map((url) => ({ url, alt: "Service photo" }))
+      );
     }
 
     updateData.images = service.images;

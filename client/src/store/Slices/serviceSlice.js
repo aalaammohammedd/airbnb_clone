@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 
 const API_URL = "http://localhost:3000/api/services";
 
@@ -68,9 +69,12 @@ export const createService = createAsyncThunk(
   "service/createService",
   async (serviceData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(API_URL, serviceData, {
-        withCredentials: true,
-      });
+      const images = await uploadImagesToCloudinary(serviceData.images || []);
+      const response = await axios.post(
+        API_URL,
+        { ...serviceData, images },
+        { withCredentials: true }
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);
@@ -82,15 +86,9 @@ export const updateService = createAsyncThunk(
   "service/updateService",
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const config = {
+      const response = await axios.put(`${API_URL}/${id}`, data, {
         withCredentials: true,
-      };
-
-      if (data instanceof FormData) {
-        config.headers = { "Content-Type": "multipart/form-data" };
-      }
-
-      const response = await axios.put(`${API_URL}/${id}`, data, config);
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

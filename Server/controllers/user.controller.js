@@ -1,5 +1,5 @@
 const User = require("../models/User.model.js");
-const { uploadOnCloudinary } = require('../config/cloudinary.js');
+const { isOwnedCloudinaryImage } = require('../config/cloudinary.js');
 
 exports.becomeHost = async (req, res) => {
   try {
@@ -171,14 +171,13 @@ exports.updateProfile = async (req, res) => {
 
 exports.uploadProfilePhoto = async (req, res) => {
   try {
-    const { base64Image } = req.body;
+    const { imageUrl } = req.body;
 
-    if (!base64Image) {
-      return res.status(400).json({ message: "Base64 image string is required." });
+    if (!isOwnedCloudinaryImage(imageUrl, req.user._id)) {
+      return res.status(400).json({ message: "A valid Cloudinary image URL uploaded by you is required." });
     }
 
-    const imageUrl = await uploadOnCloudinary(base64Image);
-    const updatedUser = await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
       req.user._id,
       { profilePhoto: imageUrl },
       { new: true }
@@ -190,7 +189,7 @@ exports.uploadProfilePhoto = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error during Base64 upload process:", error);
-    res.status(500).json({ message: "Server error during image upload." });
+    console.error("Error saving Cloudinary profile image URL:", error);
+    res.status(500).json({ message: "Failed to save profile image." });
   }
 };
