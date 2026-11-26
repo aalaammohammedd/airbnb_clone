@@ -29,12 +29,12 @@ const server = http.createServer(app);
 
 // Initialize Socket.io
 const io = initializeSocket(server);
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 //CORS configuration
 app.use(
   cors({
-    origin: allow, // frontend origin
+    origin: [process.env.CLIENT_URL_1, process.env.CLIENT_URL_2], // frontend origin
     credentials: true, // allow cookies
   })
 );
@@ -115,6 +115,5 @@ app.use((err, req, res, next) => {
 
 // Start server
 server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-  console.log(`Swagger docs available at http://localhost:${port}/api-docs`);
+  console.log(`Server is running without any issues`);
 });
