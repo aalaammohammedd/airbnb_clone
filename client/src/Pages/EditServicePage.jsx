@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, Package, CheckCircle, Loader2, Plus, X, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,7 +39,7 @@ export default function EditServicePage() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
     const [newImages, setNewImages] = useState([]);
     const [removedImages, setRemovedImages] = useState([]);
 
@@ -95,7 +96,7 @@ export default function EditServicePage() {
                     },
                     images: data.data.images ?? [],
                 });
-            } catch (err) {
+            } catch {
                 setError("Failed to load listing");
             } finally {
                 setLoading(false);
@@ -200,6 +201,10 @@ export default function EditServicePage() {
     };
 
     const handleRemoveImage = (index) => {
+        const image = formData.images[index];
+        if (image?._id) {
+            setRemovedImages((prev) => [...prev, image._id]);
+        }
         setFormData((prev) => ({
             ...prev,
             images: prev.images.filter((_, i) => i !== index),
@@ -211,46 +216,33 @@ export default function EditServicePage() {
         setIsSubmitting(true);
 
         try {
-            const formDataToSend = new FormData();
-
-            // Append all fields
-            formDataToSend.append("title", formData.title);
-            formDataToSend.append("description", formData.description);
-            formDataToSend.append("serviceCategory", formData.serviceCategory);
-            formDataToSend.append(
-                "location",
-                JSON.stringify({
+            const images = await uploadImagesToCloudinary(newImages);
+            await axios.put(`/api/services/${id}`, {
+                title: formData.title,
+                description: formData.description,
+                serviceCategory: formData.serviceCategory,
+                location: {
                     serviceArea: formData.serviceArea,
                     city: formData.city,
                     country: formData.country,
                     coordinates: formData.coordinates,
-                })
-            );
-            formDataToSend.append("hourlyRate", formData.hourlyRate);
-            formDataToSend.append("packages", JSON.stringify(formData.packages));
-            formDataToSend.append("availability", JSON.stringify(formData.availability));
-            formDataToSend.append("requirements", JSON.stringify(formData.requirements));
-            formDataToSend.append("skills", JSON.stringify(formData.skills));
-            formDataToSend.append("serviceDetails", JSON.stringify(formData.serviceDetails));
-
-            // Append removed images
-            if (removedImages.length > 0) {
-                formDataToSend.append("removedImages", JSON.stringify(removedImages));
-            }
-
-            // Append new images
-            newImages.forEach((file) => {
-                formDataToSend.append("images", file);
-            });
-
-            await axios.put(`/api/services/${id}`, formDataToSend, {
-                headers: { "Content-Type": "multipart/form-data" },
+                },
+                hourlyRate: formData.hourlyRate,
+                packages: formData.packages,
+                availability: formData.availability,
+                requirements: formData.requirements,
+                skills: formData.skills,
+                serviceDetails: formData.serviceDetails,
+                removedImages,
+                images,
+            }, {
+                withCredentials: true,
             });
 
             toast.success("Service updated successfully!");
             navigate("/host/dashboard");
         } catch (err) {
-            toast.error(err.response?.data?.message || "Update failed");
+            toast.error(err.response?.data?.message || err.message || "Update failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -685,10 +677,7 @@ export default function EditServicePage() {
                                             type="button"
                                             variant="destructive"
                                             className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition"
-                                            onClick={() => {
-                                                setRemovedImages((prev) => [...prev, image._id]);
-                                                handleRemoveImage(index);
-                                            }}
+                                            onClick={() => handleRemoveImage(index)}
                                         >
                                             Remove
                                         </Button>

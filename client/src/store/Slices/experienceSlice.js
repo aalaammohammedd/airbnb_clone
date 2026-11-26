@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 
 const API_URL = "http://localhost:3000/api/experiences";
 
@@ -69,56 +70,14 @@ export const createExperience = createAsyncThunk(
   "experience/createExperience",
   async (experienceData, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-
-      // Append all fields to FormData
-      formData.append("title", experienceData.title);
-      formData.append("description", experienceData.description);
-      formData.append("experienceType", experienceData.experienceType);
-      formData.append("pricePerPerson", experienceData.pricePerPerson);
-      formData.append("duration", experienceData.duration);
-      formData.append("ageRequirement", experienceData.ageRequirement || "");
-      formData.append("fitnessLevel", experienceData.fitnessLevel || "");
-
-      // Append location fields
-      formData.append("street", experienceData.location?.street || "");
-      formData.append("city", experienceData.location?.city || "");
-      formData.append("country", experienceData.location?.country || "");
-      formData.append(
-        "coordinates",
-        JSON.stringify(experienceData.location?.coordinates || {})
+      const images = await uploadImagesToCloudinary(experienceData.images || []);
+      const response = await axios.post(
+        API_URL,
+        { ...experienceData, images },
+        {
+          withCredentials: true,
+        }
       );
-
-      // Append complex objects as JSON strings
-      formData.append(
-        "groupSize",
-        JSON.stringify(experienceData.groupSize || {})
-      );
-      formData.append(
-        "schedule",
-        JSON.stringify(experienceData.schedule || [])
-      );
-      formData.append(
-        "requirements",
-        JSON.stringify(experienceData.requirements || [])
-      );
-      formData.append(
-        "inclusions",
-        JSON.stringify(experienceData.inclusions || [])
-      );
-
-      // Append image files
-      if (experienceData.images && Array.isArray(experienceData.images)) {
-        experienceData.images.forEach((image) => {
-          if (image instanceof File) {
-            formData.append("images", image);
-          }
-        });
-      }
-
-      const response = await axios.post(API_URL, formData, {
-        withCredentials: true,
-      });
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || error.message);

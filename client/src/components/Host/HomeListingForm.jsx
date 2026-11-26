@@ -72,7 +72,7 @@ const HomeListingForm = ({ onBack }) => {
       toast.success("Listing created successfully!");
       onBack();
     } catch (err) {
-      toast.error(`Failed to create listing: ${err.message || error}`);
+      toast.error(`Failed to create listing: ${err?.message || err || error}`);
     }
   };
 

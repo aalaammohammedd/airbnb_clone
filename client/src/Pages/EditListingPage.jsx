@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeft, Home, MapPin, DollarSign, Users, Bed, Bath, Sparkles, Loader2, Check, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { uploadImagesToCloudinary } from "@/utils/cloudinaryUpload";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,7 @@ export default function EditListingPage() {
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
     const [allAmenities, setAllAmenities] = useState([]);
     const [newImages, setNewImages] = useState([]);
     const [removedImages, setRemovedImages] = useState([]);
@@ -79,7 +80,7 @@ export default function EditListingPage() {
                     amenities: data.amenities.map((amenity) => amenity._id) ?? [],
                     images: data.images ?? [],
                 });
-            } catch (err) {
+            } catch {
                 setError("Failed to load listing");
             } finally {
                 setLoading(false);
@@ -120,6 +121,10 @@ export default function EditListingPage() {
     };
 
     const handleRemoveImage = (index) => {
+        const image = formData.images[index];
+        if (image?._id) {
+            setRemovedImages((prev) => [...prev, image._id]);
+        }
         setFormData((prev) => ({
             ...prev,
             images: prev.images.filter((_, i) => i !== index),
@@ -131,44 +136,31 @@ export default function EditListingPage() {
         setIsSubmitting(true);
 
         try {
-            const formDataToSend = new FormData();
-
-            // Append all fields
-            formDataToSend.append("title", formData.title);
-            formDataToSend.append("description", formData.description);
-            formDataToSend.append("propertyType", formData.propertyType);
-            formDataToSend.append("pricePerNight", formData.pricePerNight);
-            formDataToSend.append("cleaningFee", formData.cleaningFee);
-            formDataToSend.append("maxGuests", formData.maxGuests);
-            formDataToSend.append("bedrooms", formData.bedrooms);
-            formDataToSend.append("bathrooms", formData.bathrooms);
-            formDataToSend.append("street", formData.street);
-            formDataToSend.append("city", formData.city);
-            formDataToSend.append("country", formData.country);
-            formDataToSend.append(
-                "coordinates",
-                JSON.stringify(formData.coordinates)
-            );
-            formDataToSend.append("amenities", JSON.stringify(formData.amenities));
-
-            // Append removed images
-            if (removedImages.length > 0) {
-                formDataToSend.append("removedImages", JSON.stringify(removedImages));
-            }
-
-            // Append new images
-            newImages.forEach((file) => {
-                formDataToSend.append("images", file);
-            });
-
-            await axios.put(`/api/listings/${id}`, formDataToSend, {
-                headers: { "Content-Type": "multipart/form-data" },
+            const images = await uploadImagesToCloudinary(newImages);
+            await axios.put(`/api/listings/${id}`, {
+                title: formData.title,
+                description: formData.description,
+                propertyType: formData.propertyType,
+                pricePerNight: formData.pricePerNight,
+                cleaningFee: formData.cleaningFee,
+                maxGuests: formData.maxGuests,
+                bedrooms: formData.bedrooms,
+                bathrooms: formData.bathrooms,
+                street: formData.street,
+                city: formData.city,
+                country: formData.country,
+                coordinates: formData.coordinates,
+                amenities: formData.amenities,
+                removedImages,
+                images,
+            }, {
+                withCredentials: true,
             });
 
             toast.success("Listing updated successfully!");
             navigate("/host/dashboard");
         } catch (err) {
-            toast.error(err.response?.data?.message || "Update failed");
+            toast.error(err.response?.data?.message || err.message || "Update failed");
         } finally {
             setIsSubmitting(false);
         }
@@ -454,10 +446,7 @@ export default function EditListingPage() {
                                             <Button
                                                 type="button"
                                                 variant="destructive"
-                                                onClick={() => {
-                                                    setRemovedImages((prev) => [...prev, image._id]);
-                                                    handleRemoveImage(index);
-                                                }}
+                                                onClick={() => handleRemoveImage(index)}
                                             >
                                                 Remove
                                             </Button>

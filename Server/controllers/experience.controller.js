@@ -1,6 +1,20 @@
 const Experience = require("../models/Experience.model");
 const User = require("../models/User.model");
-const { uploadOnCloudinary } = require("../config/cloudinary");
+const { validateCloudinaryImageUrls } = require("../config/cloudinary");
+
+const parseIfString = (value) => {
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+};
+
+const getImageUrls = (images, userId) => {
+  const parsedImages = parseIfString(images || []);
+  return validateCloudinaryImageUrls(parsedImages, userId);
+};
 
 // @desc    Create new experience listing
 // @route   POST /api/experiences
@@ -11,10 +25,10 @@ const createExperience = async (req, res) => {
       title,
       description,
       experienceType,
-      street,
-      city,
-      country,
-      coordinates,
+      street: streetField,
+      city: cityField,
+      country: countryField,
+      coordinates: coordinatesField,
       pricePerPerson,
       duration,
       groupSize,
@@ -26,23 +40,19 @@ const createExperience = async (req, res) => {
     } = req.body;
 
     // Parse JSON strings back to objects
-    const parsedGroupSize = groupSize ? JSON.parse(groupSize) : {};
-    const parsedSchedule = schedule ? JSON.parse(schedule) : [];
-    const parsedRequirements = requirements ? JSON.parse(requirements) : [];
-    const parsedInclusions = inclusions ? JSON.parse(inclusions) : [];
-    const parsedCoordinates = coordinates ? JSON.parse(coordinates) : {};
-
-    // Handle images
-    const uploadedImages = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        uploadedImages.push({
-          url: result.secure_url,
-          caption: "Experience photo",
-        });
-      }
-    }
+    const parsedGroupSize = parseIfString(groupSize) || {};
+    const parsedSchedule = parseIfString(schedule) || [];
+    const parsedRequirements = parseIfString(requirements) || [];
+    const parsedInclusions = parseIfString(inclusions) || [];
+    const parsedCoordinates = parseIfString(coordinatesField) || {};
+    const parsedLocation = parseIfString(req.body.location);
+    const city = parsedLocation?.city || cityField;
+    const country = parsedLocation?.country || countryField;
+    const street = parsedLocation?.street || streetField;
+    const imageCoordinates = parsedLocation?.coordinates || parsedCoordinates;
+    const uploadedImages = getImageUrls(req.body.images, req.user._id).map(
+      (url) => ({ url, alt: "Experience photo" })
+    );
 
     // Validate required location fields
     if (!city || !country) {
@@ -60,7 +70,7 @@ const createExperience = async (req, res) => {
         street,
         city,
         country,
-        coordinates: parsedCoordinates,
+        coordinates: imageCoordinates,
       },
       pricePerPerson,
       duration,
@@ -254,7 +264,6 @@ const getExperience = async (req, res) => {
 
 //     // Images
 //     // Remove deleted images
-//     // Remove images from uploadOnCloudinary
 //     // parsing string to json
 //     const parseIfString = (value) => {
 //       if (typeof value === "string") {
@@ -277,16 +286,6 @@ const getExperience = async (req, res) => {
 //     }
 
 //     /* ---------- ADD NEW IMAGES ---------- */
-//     if (req.files && req.files.length > 0) {
-//       for (const file of req.files) {
-//         const result = await uploadOnCloudinary(file.path);
-//         experience.images.push({
-//           url: result.secure_url,
-//           caption: "Experience photo",
-//         });
-//       }
-//     }
-
 //     experience = await Experience.findByIdAndUpdate(
 //       req.params.id,
 //       {
@@ -352,21 +351,10 @@ const updateExperience = async (req, res) => {
       removedImages,
     } = req.body;
 
-    const parsedGroupSize = groupSize
-      ? JSON.parse(groupSize)
-      : experience.groupSize;
-
-    const parsedSchedule = schedule
-      ? JSON.parse(schedule)
-      : experience.schedule;
-
-    const parsedRequirements = requirements
-      ? JSON.parse(requirements)
-      : experience.requirements;
-
-    const parsedInclusions = inclusions
-      ? JSON.parse(inclusions)
-      : experience.inclusions;
+    const parsedGroupSize = parseIfString(groupSize) || experience.groupSize;
+    const parsedSchedule = parseIfString(schedule) || experience.schedule;
+    const parsedRequirements = parseIfString(requirements) || experience.requirements;
+    const parsedInclusions = parseIfString(inclusions) || experience.inclusions;
 
     let parsedLocation = null;
     if (req.body.location) {
@@ -378,25 +366,21 @@ const updateExperience = async (req, res) => {
 
     // Remove images
     if (removedImages) {
-      const removedIds =
-        typeof removedImages === "string"
-          ? JSON.parse(removedImages)
-          : removedImages;
+      const removedIds = parseIfString(removedImages);
 
-      experience.images = experience.images.filter(
-        img => !removedIds.includes(img._id.toString())
-      );
+      if (Array.isArray(removedIds)) {
+        experience.images = experience.images.filter(
+          (img) => !removedIds.includes(img._id.toString())
+        );
+      }
     }
 
     // Add new images
-    if (req.files?.length) {
-      for (const file of req.files) {
-        const result = await uploadOnCloudinary(file.path);
-        experience.images.push({
-          url: result.secure_url,
-          caption: "Experience photo",
-        });
-      }
+    if (req.body.images !== undefined) {
+      const newImageUrls = getImageUrls(req.body.images, req.user._id);
+      experience.images.push(
+        ...newImageUrls.map((url) => ({ url, alt: "Experience photo" }))
+      );
     }
 
     const updateData = {
