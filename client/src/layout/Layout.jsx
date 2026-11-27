@@ -16,7 +16,6 @@ export default function Layout() {
   const toggleTranslateModal = () => setShowGlobalModal((prev) => !prev);
   const closeModal = () => setShowGlobalModal(false);
 
-  const isListingDetailsPage = location.pathname.startsWith("/room/");
   const isStandaloneAuthPage = [
     "/login",
     "/signup",
@@ -44,7 +43,6 @@ export default function Layout() {
       {!hideHeaderFooter && (
         <Navbar
           toggleTranslateModal={toggleTranslateModal}
-          isSticky={!isListingDetailsPage}
         />
       )}
 

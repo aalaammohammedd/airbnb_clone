@@ -1,4 +1,3 @@
-import i18n from "@/utils/i18n";
 import {
   CircleUserRound,
   Compass,
@@ -10,7 +9,7 @@ import {
   SearchIcon,
   User,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { Link, NavLink, useLocation } from "react-router-dom";
@@ -24,50 +23,20 @@ import SearchBar from "../SearchBar/SearchBar";
 import MenuList from "../Menu/MenuList";
 import "./Navbar.css";
 
-export default function Navbar({ toggleTranslateModal, isSticky = true }) {
+export default function Navbar({ toggleTranslateModal }) {
   const { t } = useTranslation();
-  const lang = useSelector((state) => state.lang.default_language);
   const direction = useSelector((state) => state.lang.direction);
   const isLoggedIn = useSelector((state) => state.auth.isAuthenticated);
 
   const location = useLocation();
   const [showMobileSearch, setShowMobileSearch] = useState(false);
 
-  const [scrolled, setScrolled] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState("up");
-  const [lastScrollY, setLastScrollY] = useState(0);
-
   const isServicePage =
     ["/homes", "/experiences", "/services"].includes(location.pathname) ||
     location.pathname.startsWith("/experiences/search") ||
     location.pathname.startsWith("/services/search");
 
-  useEffect(() => {
-    i18n.changeLanguage(lang);
-  }, [lang]);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-
-      if (currentScrollY > 5) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-
-      if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        setScrollDirection("down");
-      } else {
-        setScrollDirection("up");
-      }
-
-      setLastScrollY(currentScrollY);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
 
   const getUnderlinePosition = () => {
     const path = location.pathname;
@@ -93,19 +62,8 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
   return (
     <>
       <nav
-        className={`
-            bg-white px-4 sm:px-6 md:px-8 lg:px-12 
-            ${isSticky ? "sticky top-0" : "relative"} z-40
-            transition-all duration-500 ease-in-out
-            ${scrolled
-            ? "py-1 shadow-lg backdrop-blur-sm bg-opacity-95"
-            : "py-2 md:py-3"
-          }
-            ${scrollDirection === "down" && scrolled
-            ? "transform -translate-y-2"
-            : "transform translate-y-0"
-          }
-        `}
+        className="bg-white px-4 sm:px-6 md:px-8 lg:px-12  z-40
+            transition-all duration-500 ease-in-out"
       >
         {/* Mobile Search Bar - Click to open full screen */}
         {isServicePage && (
@@ -124,22 +82,16 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
 
         {/* header */}
         <div
-          className={` flex flex-wrap lg:flex-nowrap justify-between items-center gap-4
-                transition-all duration-500 ease-in-out
-                ${scrolled ? "scale-95" : "scale-100"}
-            `}
+          className=" flex flex-wrap lg:flex-nowrap justify-between items-center gap-4
+                transition-all duration-500 ease-in-out"
         >
           {/* Logo */}
           <Link
             to={"/homes"}
-            className={`
+            className='
                         hidden md:flex w-20 sm:w-24 md:w-28 lg:w-30 shrink-0
                         transition-all duration-500 ease-in-out
-                        ${scrolled
-                ? "opacity-80 scale-90"
-                : "opacity-100 scale-100"
-              }
-                    `}
+                    '
           >
             <img src={Logo} alt="airbnb_logo" className="w-full" />
           </Link>
@@ -147,13 +99,9 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
           {/* Navbar links */}
           {isServicePage && (
             <div
-              className={`flex justify-around relative flex-1 max-w-2xl xl:ms-58 lg:ms-30 md:ms-32 mx-4 mt-6
-                        transition-all duration-500 ease-in-out
-                        ${scrolled
-                  ? "opacity-90 scale-95"
-                  : "opacity-100 scale-100"
-                }
-                    `}
+              className="flex justify-around relative flex-1 max-w-2xl xl:ms-58 lg:ms-30 md:ms-32 mx-4 mt-6
+                        transition-all duration-500 ease-in-out"
+
             >
               {/* Animated underline */}
               <div
@@ -161,7 +109,6 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                             absolute bottom-0 h-0.5 bg-black w-1/3 
                             transition-all duration-300 ease-in-out 
                             ${getUnderlinePosition()}
-                            ${scrolled ? "opacity-70" : "opacity-100"}
                         `}
               ></div>
 
@@ -176,21 +123,15 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                   } 
                                 hover:scale-105 hover:text-black 
                                 transition-all duration-300 ease-in-out
-                                ${scrolled ? "transform -translate-y-0.5" : ""}
                             `}
-                style={{ transitionDelay: scrolled ? "0ms" : "100ms" }}
               >
                 <div
-                  className={`w-12 md:w-16 lg:w-18 transition-all duration-300 ${scrolled ? "md:w-16 lg:w-18 w-0 opacity-0" : "opacity-100"
-                    }`}
+                  className="w-12 md:w-16 lg:w-18 transition-all duration-300"
                 >
                   <img src={HomesIcon} alt="homes_icon" className="w-full" />
                 </div>
                 <span
-                  className={`relative text-sm lg:text-base transition-all duration-300 ${scrolled
-                    ? "md:-start-2 lg:-start-4 -start-0"
-                    : "-start-2 lg:-start-4"
-                    }`}
+                  className="relative text-sm lg:text-base transition-all duration-300"
                 >
                   {t("navbar.homes")}
                 </span>
@@ -207,19 +148,15 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                   } 
                                 hover:scale-105 hover:text-black 
                                 transition-all duration-300 ease-in-out
-                                ${scrolled ? "transform -translate-y-0.5" : ""}
                             `}
-                style={{ transitionDelay: scrolled ? "50ms" : "150ms" }}
               >
                 <div
-                  className={`relative text-[10px] font-bold start-16 md:start-20 lg:start-22 -top-5 new_tag_style text-white transition-all duration-300 ${scrolled ? "md:opacity-100 opacity-0" : "opacity-100"
-                    }`}
+                  className="relative text-[10px] font-bold start-16 md:start-20 lg:start-22 -top-5 new_tag_style text-white transition-all duration-300"
                 >
                   {t("navbar.new")}
                 </div>
                 <div
-                  className={`w-12 md:w-16 lg:w-18 transition-all duration-300 ${scrolled ? "md:w-16 lg:w-18 w-0 opacity-0" : "opacity-100"
-                    }`}
+                  className="w-12 md:w-16 lg:w-18 transition-all duration-300"
                 >
                   <img
                     src={ExperiencesIcon}
@@ -228,10 +165,7 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                   />
                 </div>
                 <span
-                  className={`relative text-sm lg:text-base transition-all duration-300 ${scrolled
-                    ? "md:-start-2 lg:-start-4 start-0"
-                    : "-start-2 lg:-start-4"
-                    }`}
+                  className="relative text-sm lg:text-base transition-all duration-300"
                 >
                   {t("navbar.experiences")}
                 </span>
@@ -248,19 +182,16 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                   } 
                                 hover:scale-105 hover:text-black 
                                 transition-all duration-300 ease-in-out
-                                ${scrolled ? "transform -translate-y-0.5" : ""}
                             `}
-                style={{ transitionDelay: scrolled ? "100ms" : "200ms" }}
               >
                 <div
-                  className={`relative text-[10px] font-bold start-16 md:start-20 lg:start-22 -top-5 new_tag_style text-white transition-all duration-300 ${scrolled ? "md:opacity-100 opacity-0" : "opacity-100"
-                    }`}
+                  className="relative text-[10px] font-bold start-16 md:start-20 lg:start-22 -top-5 new_tag_style text-white transition-all duration-300 "
+
                 >
                   {t("navbar.new")}
                 </div>
                 <div
-                  className={`w-12 md:w-16 lg:w-18 transition-all duration-300 ${scrolled ? "md:w-16 lg:w-18 w-0 opacity-0" : "opacity-100"
-                    }`}
+                  className="w-12 md:w-16 lg:w-18 transition-all duration-300"
                 >
                   <img
                     src={ServicesIcon}
@@ -269,10 +200,7 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
                   />
                 </div>
                 <span
-                  className={`relative text-sm lg:text-base transition-all duration-300 ${scrolled
-                    ? "md:-start-2 lg:-start-4 -start-0"
-                    : "-start-2 lg:-start-4"
-                    }`}
+                  className="relative text-sm lg:text-base transition-all duration-300 "
                 >
                   {t("navbar.services")}
                 </span>
@@ -282,26 +210,17 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
 
           {/* Action buttons with slide animation */}
           <div
-            className={`
+            className="
                     hidden md:flex items-center gap-2 sm:gap-3 md:gap-4 lg:gap-5 
-                    ${direction === "ltr" ? "ml-auto" : "mr-auto"}
                     transition-all duration-500 ease-in-out
-                    ${scrolled
-                ? "transform translate-x-1 scale-95"
-                : "transform translate-x-0 scale-100"
-              }
-                `}
+                    "
           >
             <span
-              className={`
+              className="
                         hidden md:inline-block cursor_pointer font-semibold 
                         hover:bg-[#d4d4d4c1] rounded-lg py-1 px-2 cursor-pointer text-sm lg:text-base
                         transition-all duration-300 ease-in-out
-                        ${scrolled
-                  ? "opacity-0 scale-90 w-0 px-0"
-                  : "opacity-100 scale-100"
-                }
-                    `}
+                        "
             >
               {location.pathname.startsWith("/host") ? (
                 <Link to="/homes">Switch to traveling</Link>
@@ -311,15 +230,9 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
             </span>
 
             <span
-              className={`
-                            cursor_pointer bg-[#d4d4d490] rounded-full p-1.5 sm:p-2 cursor-pointer 
+              className="cursor_pointer bg-[#d4d4d490] rounded-full p-1.5 sm:p-2 cursor-pointer 
                             hover:bg-[#d4d4d4d2] hover:scale-110
-                            transition-all duration-300 ease-in-out
-                            ${scrolled
-                  ? "transform rotate-180"
-                  : "transform rotate-0"
-                }
-                        `}
+                            transition-all duration-300 ease-in-out"
               onClick={toggleTranslateModal}
             >
               <Globe size={18} className="sm:w-5 sm:h-5" />
@@ -346,14 +259,10 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
         {/* Search bar - Hidden on mobile */}
         {isServicePage && (
           <div
-            className={`
+            className="
                     hidden lg:block mt-2 sm:mt-3 md:mt-4 
                     transition-all duration-500 ease-in-out
-                    ${scrolled
-                ? "max-h-0 opacity-0 mt-0 transform -translate-y-4"
-                : "max-h-96 opacity-100 transform translate-y-0"
-              }
-                `}
+                    "
           >
             <SearchBar />
           </div>
@@ -448,7 +357,7 @@ export default function Navbar({ toggleTranslateModal, isSticky = true }) {
 
       {/* Full Screen Mobile Search Modal */}
       {showMobileSearch && (
-        <div className="md:hidden fixed inset-0 bg-white z-[100] animate-slideUp">
+        <div className="md:hidden fixed inset-0 bg-white z-100 animate-slideUp">
           <div className="h-full flex flex-col">
             {/* Header */}
             <div className="flex items-center gap-3 p-4 border-b border-gray-200">

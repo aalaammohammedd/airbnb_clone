@@ -1,17 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { BadgeCheck, Check, LockKeyhole, Pencil } from "lucide-react";
-import AboutMeSection from "../components/User/AboutMeSection";
-import PastTrips from "../components/User/PastTrips";
+import { BadgeCheck, Check, Image, LockKeyhole, Pencil } from "lucide-react";
 import { setProfile, fetchUserProfile } from "../store/Slices/authslice";
 import { apiUrl } from "../utils/api";
-
-const PROFILE_SECTIONS = {
-  PERSONAL: "personal",
-  ABOUT: "about",
-  TRIPS: "trips",
-};
+import { uploadImageToCloudinary } from "../utils/cloudinaryUpload";
 
 const inputClassName =
   "mt-2 h-11 w-full rounded-lg border border-[#b0b0b0] px-3 text-sm text-[#222] outline-none focus:border-[#222] focus:ring-1 focus:ring-[#222]";
@@ -27,9 +20,11 @@ const formatDate = (dateValue, options) => {
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { user: profile, loading, error } = useSelector((state) => state.auth);
+  const photoInputRef = useRef(null);
   const [editingField, setEditingField] = useState(null);
   const [formValues, setFormValues] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [updateError, setUpdateError] = useState("");
   const [emailUpdatePending, setEmailUpdatePending] = useState(false);
 
@@ -83,6 +78,34 @@ const ProfilePage = () => {
       setUpdateError(requestError.message || "Failed to update profile.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleProfilePhotoChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || isUploadingPhoto) return;
+
+    setIsUploadingPhoto(true);
+    setUpdateError("");
+    try {
+      const imageUrl = await uploadImageToCloudinary(file);
+      const response = await fetch(apiUrl("profile/upload"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ imageUrl }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to save profile photo.");
+      }
+
+      dispatch(setProfile({ ...profile, profilePhoto: result.profilePhoto }));
+    } catch (requestError) {
+      setUpdateError(requestError.message || "Failed to upload profile photo.");
+    } finally {
+      setIsUploadingPhoto(false);
     }
   };
 
@@ -233,17 +256,41 @@ const ProfilePage = () => {
       <div className="grid gap-8 md:grid-cols-[230px_minmax(0,1fr)] md:gap-10">
         <aside>
           <div className="rounded-xl border border-[#ebebeb] bg-white p-6 text-center shadow-[0_4px_14px_rgba(0,0,0,0.08)]">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#315f5b] text-2xl font-semibold text-white">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleProfilePhotoChange}
+              aria-label="Choose a profile photo"
+            />
+            <button
+              type="button"
+              disabled={isUploadingPhoto}
+              onClick={() => photoInputRef.current?.click()}
+              aria-label={isUploadingPhoto ? "Uploading profile photo" : "Upload profile photo"}
+              className="group relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-[#315f5b] text-2xl font-semibold text-white disabled:cursor-wait"
+            >
               {profile.profilePhoto ? (
                 <img
                   src={profile.profilePhoto}
-                  alt={`${fullName}'s profile`}
+                  alt=""
                   className="h-full w-full object-cover"
                 />
               ) : (
                 initials || "U"
               )}
-            </div>
+              <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/60 text-[10px] font-semibold leading-tight opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                {isUploadingPhoto ? (
+                  "Uploading..."
+                ) : (
+                  <>
+                    <Image aria-hidden="true" className="h-4 w-4" />
+                    Upload photo
+                  </>
+                )}
+              </span>
+            </button>
             <h2 className="mt-4 text-lg font-semibold text-[#222]">{fullName || "User"}</h2>
             {role && <p className="mt-1 text-sm text-[#717171]">{role}</p>}
 
