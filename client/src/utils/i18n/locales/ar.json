@@ -7,6 +7,10 @@
     "new": "جديد",
     "startSearch": "ابدأ بحثك"
   },
+  "profile": {
+    "uploadPhoto": "تحميل صورة",
+    "uploadingPhoto": "جارٍ التحميل..."
+  },
   "searchBar": {
     "where": "أين",
     "search_destination": "أبحث عن وجهات",
@@ -52,7 +56,7 @@
   },
   "home": {
     "recentlyViewed": "المشاهدة مؤخراً",
-    "popularHomes": "منازل رائجة في القاهرة",
+    "popularHomes": "منازل رائجة",
     "loadingListings": "جاري تحميل القوائم...",
     "error": "خطأ",
     "serverError": "حدث خطأ ما",

@@ -7,6 +7,10 @@
     "new": "New",
     "startSearch": "Start your search"
   },
+  "profile": {
+    "uploadPhoto": "Upload photo",
+    "uploadingPhoto": "Uploading..."
+  },
   "searchBar": {
     "where": "Where",
     "search_destination": "search destination",
@@ -55,7 +59,7 @@
   },
   "home": {
     "recentlyViewed": "Recently Viewed",
-    "popularHomes": "Popular homes in Cairo",
+    "popularHomes": "Popular homes",
     "loadingListings": "Loading listings...",
     "error": "Error",
     "serverError": "Something went wrong",
