@@ -177,14 +177,18 @@ exports.uploadProfilePhoto = async (req, res) => {
       return res.status(400).json({ message: "A valid Cloudinary image URL uploaded by you is required." });
     }
 
-    await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       { profilePhoto: imageUrl },
       { new: true }
     ).select('profilePhoto');
 
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
     res.status(200).json({
-      profilePhoto: imageUrl,
+      profilePhoto: updatedUser.profilePhoto,
       message: "Profile photo updated successfully."
     });
 

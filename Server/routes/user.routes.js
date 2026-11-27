@@ -187,6 +187,31 @@ router.post('/become-host', auth, userController.becomeHost);
 
 router.get('/profile', auth, userController.getProfile);
 router.patch('/profile', auth, userController.updateProfile);
+/**
+ * @swagger
+ * /profile/upload:
+ *   post:
+ *     summary: Save the authenticated user's Cloudinary profile photo URL
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [imageUrl]
+ *             properties:
+ *               imageUrl:
+ *                 type: string
+ *                 format: uri
+ *     responses:
+ *       200:
+ *         description: Profile photo saved
+ *       400:
+ *         description: Invalid or unowned Cloudinary image URL
+ *       401:
+ *         description: Authentication required
+ */
 router.post('/profile/upload', auth, userController.uploadProfilePhoto);
 
 module.exports = router;
