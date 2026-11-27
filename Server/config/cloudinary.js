@@ -11,13 +11,13 @@ const getCloudinaryCredentials = () => {
 
   return {
     cloudName: CLOUDINARY_CLOUD_NAME,
-    apiKey: CLOUDINARY_API_KEY,
+    api_key: CLOUDINARY_API_KEY,
     apiSecret: CLOUDINARY_API_SECRET,
   };
 };
 
 const createImageUploadSignature = (userId) => {
-  const { cloudName, apiKey, apiSecret } = getCloudinaryCredentials();
+  const { cloudName, api_key, apiSecret } = getCloudinaryCredentials();
   const timestamp = Math.floor(Date.now() / 1000);
   const publicId = `airbnb_clone/${userId}/${crypto
     .randomBytes(16)
@@ -31,7 +31,7 @@ const createImageUploadSignature = (userId) => {
 
   return {
     cloudName,
-    apiKey,
+    api_key,
     timestamp,
     public_id: publicId,
     allowed_formats: allowedFormats,
